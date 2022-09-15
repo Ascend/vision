@@ -52,7 +52,6 @@ class DatasetFolder(fold.VisionDataset):
             if sample.is_npu:
                 sample = sample.cpu()
                 sample = sample.squeeze(0)
-                sample = sample.transpose(0, 2).transpose(1, 2)
         if self.target_transform is not None:
             target = self.target_transform(target)
 

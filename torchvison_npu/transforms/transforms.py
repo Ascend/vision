@@ -44,7 +44,7 @@ class RandomHorizontalFlip(torch.nn.Module):
         if torch.rand(1) < self.p:
             if isinstance(img, torch.Tensor):
                 if img.device.type == 'npu':
-                    return torch_npu.reverse(img, axis=[2])
+                    return torch_npu.reverse(img, axis=[3])
                 else:
                     return F.hflip(img)
         return img
@@ -59,16 +59,16 @@ class RandomResizedCrop(torch.nn.Module):
         Returns:
             PIL Image or Tensor: Randomly cropped and resized image.
         """
-        tmpimg = img.transpose(0, 2).transpose(1,  2)   ### hwc -> chw
-        i, j, h, w = TRANS.RandomResizedCrop.get_params(tmpimg, self.scale, self.ratio)
-        height, width = F._get_image_size(tmpimg)
+        i, j, h, w = TRANS.RandomResizedCrop.get_params(img, self.scale, self.ratio)
         if isinstance(img, torch.Tensor):
             if img.device.type == 'npu':
+                img = img.squeeze(0).reshape(img.shape[2], img.shape[3], img.shape[1])
+                img = img.permute((2, 0, 1)).unsqueeze(0)
+                width, height = F._get_image_size(img)
                 boxes = torch.as_tensor([[i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
                                           (j + w) / (width - 1)]], dtype=torch.float32).npu()
                 box_index = torch.as_tensor([0], dtype=torch.int32).npu()
                 crop_size = self.size
-                img = img.unsqueeze(0)
                 return torch_npu.crop_and_resize(img, boxes, box_index, crop_size)
         return F.resized_crop(img, i, j, h, w, self.size, self.interpolation)
 
