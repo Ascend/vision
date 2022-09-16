@@ -1,3 +1,16 @@
+# Copyright (c) 2022, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Any, Callable, Optional, Tuple
 import numpy as np
 import torch
@@ -31,20 +44,18 @@ def npu_loader(path:str) -> Any:
             arr = np.hstack((addr_arr, len_arr, arr, [0]))
             arr = np.array(arr, dtype=np.uint8)
             uint8_tensor = torch.as_tensor(arr.copy()).npu()
-            return torch_npu.decode_jpeg(uint8_tensor, image_shape = image_shape, channels = 3)
+            img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=3)
+            img = img.squeeze(0).reshape(img.shape[2], img.shape[3], img.shape[1])
+            img = img.permute(2, 0, 1).unsqueeze(0)
+            return img
+
         else:
             image = fold.pil_loader(path)
-            return torch.from_numpy(np.array(image)).npu()
+            return torch.from_numpy(np.array(image)).npu().unsqueeze(0)
 
 
 class DatasetFolder(fold.VisionDataset):
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (sample, target) where target is class_index of the target class.
-        """
         path, target = self.samples[index]
         sample = self.loader(path)
         if self.transform is not None:
@@ -74,6 +85,7 @@ class ImageFolder(fold.DatasetFolder):
         self.imgs = self.samples
         self.accelerate_enable = False
         self.device = torch.device("cpu")
+        self.loader = fold.default_loader
 
     def accelerate(self):
         if torch_npu.npu.is_available():

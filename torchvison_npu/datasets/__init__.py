@@ -1,2 +1,0 @@
-import torchvision
-from torchvison_npu.datasets.folder import add_dataset_imagefolder, ImageFolder
