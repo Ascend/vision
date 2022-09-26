@@ -1,39 +1,56 @@
 # vision
+<h2 id="简介md">简介</h2>
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+本项目开发了Torchvision Adapter插件，用于昇腾适配Torchvision框架。
+<h2 id="md">前提条件</h2>
 
-#### 软件架构
-软件架构说明
+- 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+- 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch。
+- Python支持版本为3.7，PyTorch支持版本为1.8.1, Torchvision支持版本为0.9.1。
+# 安装方式
 
+## 编译安装PyTorch和昇腾插件，具体请参考 https://gitee.com/ascend/pytorch
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+## 下载torchvision
 
 
-#### 特技
+```
+pip3 install torchvision==0.9.1
+```
+## 编译生成torchvision_npu插件的二进制安装包
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+```
+# 下载master分支代码，进入插件根目录
+git clone -b https://gitee.com/ascend/vision.git
+cd vision
+# 编包
+python setup.py bdist_wheel
+```
+
+## 安装vision/dist下的插件torchvision_npu包
+
+```
+pip install torchvision_npu-0.9.1-py3-none-any.whl
+```
+
+# 运行
+
+## 运行环境变量
+
+设置环境变量脚本，例如：
+
+```
+# **指的CANN包的安装目录，CANN-xx指的是版本，{arch}为架构名称。
+source /**/CANN-xx/{arch}-linux/bin/setenv.bash
+```
+## 执行单元测试脚本
+
+验证运行, 输出结果OK
+
+
+```shell
+cd test
+python -m unittest discover
+```
+
+
