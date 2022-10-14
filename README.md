@@ -21,7 +21,7 @@ pip3 install torchvision==0.9.1
 
 ```
 # 下载master分支代码，进入插件根目录
-git clone -b https://gitee.com/ascend/vision.git
+git clone -b master https://gitee.com/ascend/vision.git
 cd vision
 # 编包
 python setup.py bdist_wheel
