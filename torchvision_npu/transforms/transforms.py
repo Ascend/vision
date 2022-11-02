@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import torch
 from torch import Tensor
 import torch_npu
@@ -40,7 +41,11 @@ class ToTensor:
 class Normalize(torch.nn.Module):
     def forward(self, tensor: Tensor) -> Tensor:
         if tensor.device.type == 'npu':
-            return F.normalize(tensor, self.mean, self.std, self.inplace).npu()
+            mean = torch.tensor(self.mean).npu()
+            std = torch.tensor(self.std).npu()
+            if not self.inplace:
+                return torch_npu.image_normalize(tensor, mean, std, 0)
+            return torch_npu.image_normalize_(tensor, mean, std, 0)
         return F.normalize(tensor, self.mean, self.std, self.inplace)
 
 
@@ -80,8 +85,9 @@ class RandomResizedCrop(torch.nn.Module):
                 width, height = F._get_image_size(img)
                 if width == 1 or height == 1:
                     return img
-                boxes = torch.as_tensor([[i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
-                                          (j + w) / (width - 1)]], dtype=torch.float32).npu()
+                boxes = np.minimum([[i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
+                                   (j + w) / (width - 1)]], 1)
+                boxes = torch.as_tensor(boxes, dtype=torch.float32).npu()
                 box_index = torch.as_tensor([0], dtype=torch.int32).npu()
                 crop_size = self.size
                 return torch_npu.crop_and_resize(img, boxes, box_index, crop_size, method=self.interpolation.value)

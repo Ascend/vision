@@ -44,9 +44,9 @@ def npu_loader(path:str) -> Any:
             arr = np.hstack((addr_arr, len_arr, arr, [0]))
             arr = np.array(arr, dtype=np.uint8)
             uint8_tensor = torch.as_tensor(arr.copy()).npu()
-            img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=3)
-            img = img.squeeze(0).reshape(img.shape[2], img.shape[3], img.shape[1])
-            img = img.permute(2, 0, 1).unsqueeze(0)
+            channels = 3
+
+            img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
             return img
 
         else:
