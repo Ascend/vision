@@ -35,23 +35,23 @@ def npu_loader(path:str) -> Any:
             image_shape = extract_jpeg_shape(f)
 
             f.seek(0)
-            bytes_1 = f.read()
-            arr = np.frombuffer(bytes_1, dtype=np.uint8)
+            bytes_string = f.read()
+            arr = np.frombuffer(bytes_string, dtype=np.uint8)
             addr = 16
-            length = len(bytes_1)
+            length = len(bytes_string)
             addr_arr = list(map(int, pack('<Q', addr)))
             len_arr = list(map(int, pack('<Q', length)))
             arr = np.hstack((addr_arr, len_arr, arr, [0]))
             arr = np.array(arr, dtype=np.uint8)
-            uint8_tensor = torch.as_tensor(arr.copy()).npu()
+            uint8_tensor = torch.as_tensor(arr).npu(non_blocking=True)
             channels = 3
 
             img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
-            return img
+            return img.unsqueeze(0)
 
         else:
             image = fold.pil_loader(path)
-            return torch.from_numpy(np.array(image)).npu().unsqueeze(0)
+            return torch.from_numpy(np.array(image)).npu(non_blocking=True).unsqueeze(0)
 
 
 class DatasetFolder(fold.VisionDataset):
