@@ -50,8 +50,8 @@ def npu_loader(path:str) -> Any:
             return img.unsqueeze(0)
 
         else:
-            img = torch.from_numpy(np.array(fold.pil_loader(path))).permute((2, 0, 1)).contiguous()
-            return img.unsqueeze(0).npu(non_blocking=True)
+            image = fold.pil_loader(path)
+            return torch.from_numpy(np.array(image)).npu(non_blocking=True).unsqueeze(0)
 
 
 class DatasetFolder(fold.VisionDataset):
@@ -61,7 +61,8 @@ class DatasetFolder(fold.VisionDataset):
         if self.transform is not None:
             sample = self.transform(sample)
             if sample.is_npu:
-                sample = sample.cpu().squeeze(0)
+                sample = sample.cpu()
+                sample = sample.squeeze(0)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
