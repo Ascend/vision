@@ -43,7 +43,7 @@ def npu_loader(path:str) -> Any:
             len_arr = list(map(int, pack('<Q', length)))
             arr = np.hstack((addr_arr, len_arr, arr, [0]))
             arr = np.array(arr, dtype=np.uint8)
-            uint8_tensor = torch.as_tensor(arr).npu(non_blocking=True)
+            uint8_tensor = torch.tensor(arr).npu(non_blocking=True)
             channels = 3
 
             img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
