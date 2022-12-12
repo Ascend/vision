@@ -41,8 +41,8 @@ class ToTensor:
 class Normalize(torch.nn.Module):
     def forward(self, tensor: Tensor) -> Tensor:
         if tensor.device.type == 'npu':
-            mean = torch.as_tensor(self.mean).npu(non_blocking=True)
-            std = torch.as_tensor(self.std).npu(non_blocking=True)
+            mean = torch.tensor(self.mean).npu(non_blocking=True)
+            std = torch.tensor(self.std).npu(non_blocking=True)
             if mean.ndim == 1:
                 mean = mean.view(1, -1, 1, 1)
             if std.ndim == 1:
@@ -91,7 +91,7 @@ class RandomResizedCrop(torch.nn.Module):
                     return img
                 boxes = np.minimum([[i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
                                    (j + w) / (width - 1)]], 1)
-                boxes = torch.as_tensor(boxes, dtype=torch.float32).npu(non_blocking=True)
+                boxes = torch.tensor(boxes, dtype=torch.float32).npu(non_blocking=True)
                 box_index = [0]
                 crop_size = self.size
                 return torch_npu.crop_and_resize(img, boxes, box_index, crop_size, method=self.interpolation.value)
