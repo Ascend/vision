@@ -30,41 +30,28 @@ def add_transform_methods():
 
 
 class ToTensor:
-    @classmethod
+    @staticmethod
     def __call__(self, pic):
-        if isinstance(pic, torch.Tensor):
-            if pic.device.type == 'npu':
-                return pic.to(dtype=torch.get_default_dtype(), non_blocking=True).div(255)
+        if isinstance(pic, torch.Tensor) and pic.is_npu:
+            if pic.dtype == torch.uint8:
+                return torch_npu.img_to_tensor(pic)
         return F.to_tensor(pic)
 
 
 class Normalize(torch.nn.Module):
     def forward(self, tensor: Tensor) -> Tensor:
-        if tensor.device.type == 'npu':
-            mean = torch.tensor(self.mean).npu(non_blocking=True)
-            std = torch.tensor(self.std).npu(non_blocking=True)
-            if mean.ndim == 1:
-                mean = mean.view(1, -1, 1, 1)
-            if std.ndim == 1:
-                std = std.view(1, -1, 1, 1)
+        if tensor.is_npu:
             if not self.inplace:
-                return torch_npu.image_normalize(tensor, mean, std, 0)
-            return torch_npu.image_normalize_(tensor, mean, std, 0)
+                return torch_npu.image_normalize(tensor, self.mean, self.std, 0)
+            return torch_npu.image_normalize_(tensor, self.mean, self.std, 0)
         return F.normalize(tensor, self.mean, self.std, self.inplace)
 
 
 class RandomHorizontalFlip(torch.nn.Module):
     def forward(self, img):
-        """
-        Args:
-            img (PIL Image or Tensor): Image to be flipped.
-
-        Returns:
-            PIL Image or Tensor: Randomly flipped image.
-        """
         if torch.rand(1) < self.p:
             if isinstance(img, torch.Tensor):
-                if img.device.type == 'npu':
+                if img.is_npu:
                     return torch_npu.reverse(img, axis=[3])
                 else:
                     return F.hflip(img)
@@ -73,25 +60,17 @@ class RandomHorizontalFlip(torch.nn.Module):
 
 class RandomResizedCrop(torch.nn.Module):
     def forward(self, img):
-        """
-        Args:
-            img (PIL Image or Tensor): Image to be cropped and resized.
-
-        Returns:
-            PIL Image or Tensor: Randomly cropped and resized image.
-        """
         i, j, h, w = TRANS.RandomResizedCrop.get_params(img, self.scale, self.ratio)
         if isinstance(img, torch.Tensor):
-            if img.device.type == 'npu':
+            if img.is_npu:
                 interpolation = [InterpolationMode.NEAREST, InterpolationMode.BILINEAR]
                 if self.interpolation not in interpolation:
                     raise ValueError(f'Tochvision_Npu cannot support this interpolation method')
-                width, height = F._get_image_size(img)
+                width, height = img.shape[-1], img.shape[-2]
                 if width <= 1 or height <= 1:
                     return img
-                boxes = np.minimum([[i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
-                                   (j + w) / (width - 1)]], 1)
-                boxes = torch.tensor(boxes, dtype=torch.float32).npu(non_blocking=True)
+                boxes = np.minimum([i / (height - 1), j / (width - 1), (i + h) / (height - 1), \
+                                   (j + w) / (width - 1)], 1).tolist()
                 box_index = [0]
                 crop_size = self.size
                 return torch_npu.crop_and_resize(img, boxes, box_index, crop_size, method=self.interpolation.value)
