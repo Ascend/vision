@@ -1,14 +1,7 @@
-#pragma once
+namespace vision{
+namespace ops{
 
-#include <ATen/ATen.h>
-#include "../macros.h"
+static PyObject * TensorAdd(PyObject* self_, PyObject* args, PyObject* kwargs);
 
-namespace vision {
-namespace ops {
-
-VISION_API at::Tensor add(
-    const at::Tensor& a,
-    const at::Tensor& b);
-
-} // namespace ops
-} // namespace vision
+} //namespace ops
+} //namespace vision

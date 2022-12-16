@@ -1,23 +1,25 @@
-#include "add.h"
+#include <Python.h>
 
-#include <torch/types.h>
+#include <torch/csrc/autograd/utils/wrap_outputs.h>
+#include <torch/csrc/utils/python_arg_parser.h>
+#include <torch/csrc/Exceptions.h>
+#include <torch/library.h>
 
-namespace vision {
-namespace ops {
+#include <ATen/ATen.h>
 
-at::Tensor add(
-    const at::Tensor& a,
-    const at::Tensor& b) {
-  static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::add", "")
-                       .typed<decltype(add)>();
-  return op.call(a, b);
+#include "torchvision_npu/csrc/ops/add.h"
+
+static PyObject * TensorAdd(PyObject* self_, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser({
+    "tensor_add(Tensor a, Tensor b)",
+  }, /*traceable=*/true);
+  torch::ParsedArgs<2> parsed_args;
+  auto _r = parser.parse(nullptr, args, kwargs, parsed_args);
+
+  return torch::autograd::utils::wrap(_r.tensor(0).add(_r.tensor(1)));
+
+  END_HANDLE_TH_ERRORS
 }
 
-TORCH_LIBRARY_FRAGMENT(torchvision, m) {
-  m.def(TORCH_SELECTIVE_SCHEMA(
-      "torchvision::add(Tensor a, Tensor b) -> Tensor"));
-}
-
-} // namespace ops
-} // namespace vision

@@ -4,11 +4,12 @@ import glob
 import shutil
 
 import torch
+import torch_npu
 
 from pybind11 import get_cmake_dir
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import find_packages, setup
-from torch_npu.utils.cpp_extension import NpuExtension as Extension
+from torch_npu.utils.cpp_extension import NpuExtension
 from torch.utils.cpp_extension import BuildExtension, CppExtension
 
 __vision__ = '0.9.1'
@@ -20,9 +21,9 @@ ext_modules = [
       #   # [r'torchvision_npu/csrc/pybind.cpp'],
       #   defind_macros=[("VISION_INFO", __vision__)]
       # ),
-    Pybind11Extension(
-        name="torchvision_npu_ops",
-        sources=glob.glob(r'torchvision_npu/csrc/ops/*.cpp') ,
+    NpuExtension(
+        name="torchvision_npu.ops",
+        sources=glob.glob(r'torchvision_npu/csrc/InitNpuBinding.cpp') ,
     )
 ]
 
@@ -100,6 +101,6 @@ setup(name=package_name,
       url='https://gitee.com/ascend/vision',
       packages=find_packages(),
       package_data={package_name: ['lib/*.so', '*.so']},
-      ext_modules=get_extensions(),
+      ext_modules=ext_modules,
       cmdclass={"build_ext": BuildExtension.with_options(no_python_abi_suffix=True)}
       )
