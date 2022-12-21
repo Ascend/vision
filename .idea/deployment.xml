@@ -5,18 +5,18 @@
       <paths name="192.168.99.105">
         <serverdata>
           <mappings>
-            <mapping deploy="vision_npu" local="$PROJECT_DIR$" web="/" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
-      <paths name="normal1488@192.168.88.148:8888">
+      <paths name="normal105@192.168.99.105:22 password">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
-      <paths name="normal1488@192.168.88.148:8888 password">
+      <paths name="normal1488@192.168.88.148:8888">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />

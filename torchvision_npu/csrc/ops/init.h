@@ -1,2 +1,0 @@
-
-PyMethodDef* getTorchNpuOps();

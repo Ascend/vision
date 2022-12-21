@@ -1,6 +1,7 @@
 from torchvision_npu.datasets import add_dataset_imagefolder, npu_loader
 from torchvision_npu.transforms import add_transform_methods
-from torchvision_npu.runner import *
+
+from .extensions import _HAS_OPS
 
 
 def apply_class_patches():
