@@ -13,6 +13,8 @@
 # limitations under the License.
 import unittest
 import torch
+import torchvision
+
 import torchvision_npu
 import torchvision.transforms as transforms
 
@@ -21,6 +23,15 @@ class TestToTensor(unittest.TestCase):
     def test_totensor(self):
         path = "./Data/dog/dog.0001.jpg"
         img = torchvision_npu.datasets.folder.npu_loader(path)
+        output = transforms.ToTensor()(img)
+        cpuout = output.cpu()
+        self.assertEqual(output.dtype, torch.float32)
+        self.assertGreaterEqual(torch.tensor(1), torch.max(cpuout))
+        self.assertGreaterEqual(torch.max(cpuout), torch.tensor(0))
+
+    def test_pil_totensor(self):
+        path = "./Data/dog/dog.0001.jpg"
+        img = torchvision.datasets.folder.pil_loader(path)
         output = transforms.ToTensor()(img)
         cpuout = output.cpu()
         self.assertEqual(output.dtype, torch.float32)

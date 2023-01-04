@@ -1,5 +1,18 @@
-_HAS_OPS = False
+# Copyright (c) 2022, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+_HAS_OPS = False
 
 def _has_ops():
     return False
@@ -9,6 +22,7 @@ def _register_extensions():
     import os
     import importlib
     import torch
+    import torch_npu
 
     # load the custom_op_library and register the custom ops
     lib_dir = os.path.dirname(__file__)
@@ -47,33 +61,3 @@ def _assert_has_ops():
             "please reinstall torchvision so that it matches your PyTorch install."
         )
 
-
-def _check_cuda_version():
-    """
-    Make sure that CUDA versions match between the pytorch install and torchvision install
-    """
-    if not _HAS_OPS:
-        return -1
-    import torch
-    _version = torch.ops.torchvision._cuda_version()
-    if _version != -1 and torch.version.cuda is not None:
-        tv_version = str(_version)
-        if int(tv_version) < 10000:
-            tv_major = int(tv_version[0])
-            tv_minor = int(tv_version[2])
-        else:
-            tv_major = int(tv_version[0:2])
-            tv_minor = int(tv_version[3])
-        t_version = torch.version.cuda
-        t_version = t_version.split('.')
-        t_major = int(t_version[0])
-        t_minor = int(t_version[1])
-        if t_major != tv_major or t_minor != tv_minor:
-            raise RuntimeError("Detected that PyTorch and torchvision were compiled with different CUDA versions. "
-                               "PyTorch has CUDA Version={}.{} and torchvision has CUDA Version={}.{}. "
-                               "Please reinstall the torchvision that matches your PyTorch install."
-                               .format(t_major, t_minor, tv_major, tv_minor))
-    return _version
-
-
-_check_cuda_version()

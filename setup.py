@@ -1,39 +1,34 @@
-import distutils
+# Copyright (c) 2022, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import glob
-import shutil
 
 import torch
 import torch_npu
 
-from pybind11 import get_cmake_dir
-from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import find_packages, setup
 from torch_npu.utils.cpp_extension import NpuExtension
 from torch.utils.cpp_extension import BuildExtension, CppExtension
 
 __vision__ = '0.9.1'
 
-# ext_modules = [
-#       # Pybind11Extension(
-#       #   "torchvision_npu.runner",
-#       #   sources=glob.glob(r'torchvision_npu/csrc/*.cpp'),
-#       #   # [r'torchvision_npu/csrc/pybind.cpp'],
-#       #   defind_macros=[("VISION_INFO", __vision__)]
-#       # ),
-#     NpuExtension(
-#         name="torchvision_npu.ops",
-#         sources=glob.glob(r'torchvision_npu/csrc/InitNpuBinding.cpp') ,
-#     )
-# ]
-
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, 'torchvision_npu', 'csrc')
 
-    main_file = glob.glob(os.path.join(extensions_dir, '*.cpp')) \
-                + glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp')) \
-                + glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp'))
+    main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp'))
 
     # sources = main_file + source_cpu
     sources = main_file
@@ -46,7 +41,7 @@ def get_extensions():
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
-    include_dirs = [extensions_dir]
+    include_dirs = [extensions_dir, '*.hpp']
 
     ext_modules = [
         extension(
