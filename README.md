@@ -11,12 +11,19 @@
 
 ## 编译安装PyTorch和昇腾插件，具体请参考 https://gitee.com/ascend/pytorch
 
-## 下载torchvision
+## 编译安装torchvision
 
 
 ```
-pip3 install torchvision==0.9.1
+git clone https://github.com/pytorch/vision.git
+cd vision
+git checkout v0.9.1
+# 编包
+python setup.py bdist_wheel
+# 安装
+pip3 install dist/torchvision-0.9.0a0+8fb5838-cp37-cp37m-linux_aarch64.whl
 ```
+
 ## 编译生成torchvision_npu插件的二进制安装包
 
 ```
