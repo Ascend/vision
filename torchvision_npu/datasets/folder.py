@@ -11,20 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Tuple
+
 import numpy as np
 import torch
 import torch_npu
 import torchvision
+
+from typing import Any, Tuple
+
 from torchvision.datasets import folder as fold
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
 
 
 def add_dataset_imagefolder():
     torchvision.__name__ = 'torchvision_npu'
-    torchvision.datasets.ImageFolder = ImageFolder
+    torchvision._image_backend = 'npu'
+    torchvision.datasets.folder.default_loader = default_loader
     torchvision.datasets.DatasetFolder.__getitem__ = DatasetFolder.__getitem__
 
+
+def default_loader(path: str) -> Any:
+    from torchvision import get_image_backend
+
+    if get_image_backend() == 'npu':
+        return npu_loader(path)
+    elif get_image_backend() == "accimage":
+        return fold.accimage_loader(path)
+    else:
+        return fold.pil_loader(path)
 
 def npu_loader(path:str) -> Any:
     with open(path, "rb") as f:
@@ -66,28 +80,3 @@ class DatasetFolder(fold.VisionDataset):
             target = self.target_transform(target)
 
         return sample, target
-
-
-class ImageFolder(fold.DatasetFolder):
-    def __init__(
-            self,
-            root: str,
-            transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
-            loader: Callable[[str], Any] = fold.default_loader,
-            is_valid_file: Optional[Callable[[str], bool]] = None,
-    ):
-        super(ImageFolder, self).__init__(root, loader, fold.IMG_EXTENSIONS if is_valid_file is None else None,
-                                          transform=transform,
-                                          target_transform=target_transform,
-                                          is_valid_file=is_valid_file)
-        self.imgs = self.samples
-        self.accelerate_enable = False
-        self.device = torch.device("cpu")
-        self.loader = fold.default_loader
-
-    def accelerate(self):
-        if torch_npu.npu.is_available():
-            self.accelerate_enable = True
-            self.loader = npu_loader
-            self.device = torch_npu.npu.current_device()

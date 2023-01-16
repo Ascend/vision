@@ -11,5 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torchvision
-from torchvision_npu.datasets.folder import add_dataset_imagefolder, ImageFolder, npu_loader
+
+from torchvision_npu.datasets.folder import add_dataset_imagefolder, npu_loader

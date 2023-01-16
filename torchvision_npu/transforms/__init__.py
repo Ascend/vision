@@ -10,5 +10,9 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
+<<<<<<< HEAD
 # limitations under the License.
 from torchvision_npu.transforms.transforms import add_transform_methods
+=======
+# limitations under the License.
+>>>>>>> 97ed248d5bec52b5b893c994b26c460c40e48c28
