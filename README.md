@@ -60,4 +60,6 @@ cd test
 python -m unittest discover
 ```
 
+**torchvision_npu的适配方案见[适配指导](docs/适配指导.md)。**
+
 
