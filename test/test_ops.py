@@ -9,6 +9,7 @@ import torch_npu
 from functools import lru_cache
 from torch import Tensor
 from torch.autograd import gradcheck
+from torch import autograd
 from torch.nn.modules.utils import _pair
 from torchvision import ops
 import torchvision_npu
@@ -19,18 +20,6 @@ class OpTester(object):
     @classmethod
     def setUpClass(cls):
         cls.dtype = torch.float64
-
-    def test_forward_cpu_contiguous(self):
-        self._test_forward(device=torch.device('cpu'), contiguous=True)
-
-    def test_forward_cpu_non_contiguous(self):
-        self._test_forward(device=torch.device('cpu'), contiguous=False)
-
-    def test_backward_cpu_contiguous(self):
-        self._test_backward(device=torch.device('cpu'), contiguous=True)
-
-    def test_backward_cpu_non_contiguous(self):
-        self._test_backward(device=torch.device('cpu'), contiguous=False)
 
     @unittest.skipIf(not torch.npu.is_available(), "npu unavailable")
     def test_forward_npu_contiguous(self):
@@ -80,12 +69,13 @@ class RoIOpTester(OpTester):
         gt_y = self.expected_fn(x, rois, pool_h, pool_w, spatial_scale=1,
                                 sampling_ratio=-1, device=device, dtype=self.dtype)
 
-        tol = 1e-3 
+        tol = 1e-3
         self.assertTrue(torch.allclose(gt_y.to(y.dtype), y, rtol=tol, atol=tol))
 
     def _test_backward(self, device, contiguous):
         pool_size = 2
         x = torch.rand(1, 2 * (pool_size ** 2), 5, 5, dtype=self.dtype, device=device, requires_grad=True)
+        x_cpu = x.cpu()
         if not contiguous:
             x = x.permute(0, 1, 3, 2)
         rois = torch.tensor([[0, 0, 0, 4, 4],  # format is (xyxy)
@@ -96,10 +86,22 @@ class RoIOpTester(OpTester):
         def func(z):
             return self.fn(z, rois, pool_size, pool_size, spatial_scale=1, sampling_ratio=1)
 
-        script_func = self.get_script_fn(rois, pool_size)
+        def func_cpu(z):
+            return self.fn(z, rois.to("cpu"), pool_size, pool_size, spatial_scale=1, sampling_ratio=1)
 
-        self.assertTrue(gradcheck(func, (x,)))
-        self.assertTrue(gradcheck(script_func, (x,)))
+        script_func = self.get_script_fn(rois, pool_size)
+        script_func_cpu = self.get_script_fn(rois.to("cpu"), pool_size)
+
+        self._check_grad(func, func_cpu, x, x_cpu)
+
+    def _check_grad(self, func, func_cpu, x, x_cpu):
+        y_cpu = func_cpu(x_cpu)
+        y = func(x)
+
+        x_cpu_grad = autograd.grad(torch.sum(y_cpu), x_cpu, retain_graph=True)[0]
+        x_npu_grad = autograd.grad(torch.sum(y), x, retain_graph=True)[0]
+
+        self.assertTrue(torch.allclose(x_cpu_grad, x_npu_grad.cpu()))
 
     def test_boxes_shape(self):
         self._test_boxes_shape()
@@ -255,7 +257,6 @@ def bilinear_interpolate(data, y, x, snap_border=False):
     return val
 
 
-@unittest.skip("npu version of operator is not implemented.")
 class RoIAlignTester(RoIOpTester, unittest.TestCase):
     def fn(self, x, rois, pool_h, pool_w, spatial_scale=1, sampling_ratio=-1, aligned=False, **kwargs):
         return ops.RoIAlign((pool_h, pool_w), spatial_scale=spatial_scale,

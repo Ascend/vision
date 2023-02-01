@@ -28,11 +28,6 @@ at::Tensor nms_kernel_impl(
     const at::Tensor& scores,
     double iou_threshold) {
 
-    int offset = 0;
-    at::Tensor boxed_offest = at_npu::native::OpPreparation::ApplyTensor(boxes);
-    at::Tensor ones_tensor =
-      at_npu::native::OpPreparation::ApplyTensor(boxes).fill_(1);
-    at::add_out(boxed_offest, boxes, ones_tensor, offset);
     at::Tensor iou_threshold_y = at_npu::native::OpPreparation::ApplyTensor(
                                    {}, boxes.options().dtype(at::kFloat), boxes)
                                    .fill_(iou_threshold);
@@ -74,7 +69,7 @@ at::Tensor nms_kernel(
 
   auto result = at::empty({0}, dets.options());
 
-  AT_DISPATCH_FLOATING_TYPES(dets.scalar_type(), "nms_kernel", [&] {
+  AT_DISPATCH_FLOATING_TYPES_AND_HALF(dets.scalar_type(), "nms_kernel", [&] {
     result = nms_kernel_impl<scalar_t>(dets, scores, iou_threshold);
   });
   return result;
