@@ -14,6 +14,7 @@
 
 import torchvision
 from torchvision_npu.datasets import add_dataset_imagefolder, npu_loader
+from torchvision_npu.ops.deform_conv import patch_deform_conv
 
 from .extensions import _HAS_OPS
 from .transforms.functional import patch_transform_methods
@@ -51,5 +52,6 @@ def apply_class_patches():
     patch_init_methods()
     add_dataset_imagefolder()
     patch_transform_methods()
+    patch_deform_conv()
 
 apply_class_patches()
