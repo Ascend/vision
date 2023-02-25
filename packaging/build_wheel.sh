@@ -4,7 +4,7 @@ set -ex
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 export BUILD_TYPE=wheel
-setup_env 0.9.0
+setup_env 0.12.0
 setup_wheel_python
 pip_install numpy pyyaml future ninja
 python setup.py clean
