@@ -16,7 +16,8 @@ from typing import List, Optional
 
 import torch
 from torch import Tensor
-import torchvision.transforms.functional
+import torchvision
+import torchvision.transforms.functional as F
 from torchvision.transforms import functional_tensor as F_t
 from torchvision.transforms import functional_pil as F_pil
 
@@ -25,6 +26,7 @@ from . import functional_npu as F_npu
 
 
 def patch_transform_methods():
+    setattr(torchvision.transforms.functional, "normalize_ori", torchvision.transforms.functional.normalize)
     torchvision.transforms.functional.normalize = normalize
     torchvision.transforms.functional.hflip = hflip
     torchvision.transforms.functional.resized_crop = resized_crop
@@ -58,7 +60,7 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
     if tensor.device.type == 'npu':
         return F_npu.normalize(tensor, mean, std, inplace)
 
-    return F_t.normalize(tensor, mean=mean, std=std, inplace=inplace)
+    return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
 
 
 def hflip(img: Tensor) -> Tensor:
@@ -126,8 +128,8 @@ def resized_crop(
         _log_api_usage_once(resized_crop)
     if isinstance(img, torch.Tensor) and img.device.type == 'npu':
         return F_npu.resized_crop(img, top, left, height, width, size, interpolation)
-    img = torchvision.crop(img, top, left, height, width)
-    img = torchvision.resize(img, size, interpolation, antialias=antialias)
+    img = F.crop(img, top, left, height, width)
+    img = F.resize(img, size, interpolation)
     return img
 
 
