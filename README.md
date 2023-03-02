@@ -51,6 +51,8 @@
     git clone -b master https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
     git checkout v0.9.1-dev
+    # 安装依赖库
+    pip3 install -r requirement.txt
     # 编包
     python setup.py bdist_wheel
     # 安装

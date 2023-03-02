@@ -27,14 +27,19 @@ def set_image_backend(backend):
     Specifies the package used to load images.
 
     Args:
-        backend (string): Name of the image backend. one of {'npu', 'PIL', 'accimage'}.
+        backend (string): Name of the image backend. one of {'npu', 'PIL', 'cv2', 'accimage'}.
             The :mod:`accimage` package uses the Intel IPP library. It is
             generally faster than PIL, but does not support as many operations.
     """
     global _image_backend
-    if backend not in ["PIL", "accimage", "npu"]:
-        raise ValueError(f"Invalid backend '{backend}'. Options are 'npu', 'PIL' and 'accimage'")
+    if backend not in ["PIL", "accimage", "npu", "cv2"]:
+        raise ValueError(f"Invalid backend '{backend}'. Options are 'npu', 'PIL' , 'cv2' and 'accimage'")
     _image_backend = backend
+    print('transform backend: ', torchvision.get_image_backend())
+    if torchvision.get_image_backend() == 'cv2':
+        print('If you want to play the maximum performance of cv2, set the input to np.ndarray type. '
+              'If the data is loaded with ImageFolder,'
+              ' you can use torchvision.datasets.ImageFolder(loader=torchvision_npu.datasets.folder.cv2_loader).')
 
 
 def get_image_backend():

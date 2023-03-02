@@ -20,8 +20,9 @@ import numpy as np
 import torch
 import torch_npu
 import torchvision
-from torchvision.datasets import folder as fold
+from PIL import Image
 
+from torchvision.datasets import folder as fold
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
 
 
@@ -35,7 +36,6 @@ _npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomResiz
 
 
 def npu_rollback(transform) -> bool:
-
     def check_unsupported(t) -> bool:
         if t.__class__.__name__ not in _npu_accelerate:
             warnings.warn("[{}] cannot accelerate. Roll back to native implementation."
@@ -109,11 +109,18 @@ class DatasetFolder(fold.DatasetFolder):
             warnings.warn("Not Enable NPU")
 
 
-def npu_loader(path:str) -> Any:
+def cv2_loader(path: str) -> Any:
+    with open(path, 'rb') as f:
+        img = Image.open(f)
+        img = img.convert('RGB')
+        return np.asarray(img)
+
+
+def npu_loader(path: str) -> Any:
     with open(path, "rb") as f:
         f.seek(0)
         prefix = f.read(16)
-        if prefix[:3] == b"\xff\xd8\xff" :
+        if prefix[:3] == b"\xff\xd8\xff":
             f.seek(0)
             image_shape = extract_jpeg_shape(f)
 
