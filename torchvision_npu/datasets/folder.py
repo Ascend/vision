@@ -12,33 +12,102 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from typing import Any, Tuple, Callable, Optional
+import warnings
+
 import numpy as np
 import torch
 import torch_npu
 import torchvision
-
-from typing import Any, Tuple
-
 from torchvision.datasets import folder as fold
+
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
 
 
-def add_dataset_imagefolder():
+def add_datasets_folder():
     torchvision.__name__ = 'torchvision_npu'
-    torchvision._image_backend = 'npu'
-    torchvision.datasets.folder.default_loader = default_loader
-    torchvision.datasets.DatasetFolder.__getitem__ = DatasetFolder.__getitem__
+    torchvision.datasets.DatasetFolder = DatasetFolder
+    torchvision.datasets.ImageFolder = ImageFolder
 
 
-def default_loader(path: str) -> Any:
-    from torchvision import get_image_backend
+_npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomResizedCrop"]
 
-    if get_image_backend() == 'npu':
-        return npu_loader(path)
-    elif get_image_backend() == "accimage":
-        return fold.accimage_loader(path)
-    else:
-        return fold.pil_loader(path)
+
+def npu_rollback(transform) -> bool:
+
+    def check_unsupported(t) -> bool:
+        if t.__class__.__name__ not in _npu_accelerate:
+            warnings.warn("[{}] cannot accelerate. Roll back to native implementation."
+                          .format(t.__class__.__name__))
+            torchvision.set_image_backend('PIL')
+            return True
+        return False
+
+    if transform.__class__.__name__ == "Compose":
+        for t in transform.transforms:
+            if check_unsupported(t):
+                return True
+        return False
+
+    return check_unsupported(transform)
+
+
+class DatasetFolder(fold.DatasetFolder):
+
+    def __init__(
+            self,
+            root: str,
+            loader: Callable[[str], Any],
+            extensions: Optional[Tuple[str, ...]] = None,
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            is_valid_file: Optional[Callable[[str], bool]] = None,
+    ) -> None:
+        super(DatasetFolder, self).__init__(root,
+                                            loader=loader,
+                                            extensions=extensions,
+                                            transform=transform,
+                                            target_transform=target_transform,
+                                            is_valid_file=is_valid_file)
+
+        self.accelerate_enable = False
+        self.device = torch.device("cpu")
+
+        if torchvision.get_image_backend() == 'npu':
+            if npu_rollback(self.transform):
+                return
+            if torch_npu.npu.is_available():
+                self.accelerate_enable = True
+                self.device = torch_npu.npu.current_device()
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        path, target = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+            if sample.device.type == 'npu':
+                sample = sample.cpu().squeeze(0)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return sample, target
+
+    def set_accelerate_npu(self, npu: int = -1, force_npu: bool = False) -> None:
+        """
+        Set devive and forcibly enable NPU for data preprocecssing process.
+
+        Args:
+            npu(int): Device id to set for DP worker process. -1 denotes using the device set by the main process.
+            force_npu(bool): When roll back to native implementation, set this True can forcibly enable NPU.
+                             In this case, operators that aren't supported by DVPP run on AICPU.
+        """
+        if torchvision.get_image_backend() == 'npu' or force_npu:
+            torchvision.set_image_backend('npu')
+            self.accelerate_enable = True
+            self.device = torch_npu.npu.current_device() if npu == -1 else npu
+        else:
+            warnings.warn("Not Enable NPU")
+
 
 def npu_loader(path:str) -> Any:
     with open(path, "rb") as f:
@@ -68,15 +137,29 @@ def npu_loader(path:str) -> Any:
             return img.unsqueeze(0).npu(non_blocking=True)
 
 
-class DatasetFolder(fold.VisionDataset):
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        path, target = self.samples[index]
-        sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-            if sample.is_npu:
-                sample = sample.cpu().squeeze(0)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+def default_loader(path: str) -> Any:
+    from torchvision import get_image_backend
 
-        return sample, target
+    if get_image_backend() == 'npu':
+        return npu_loader(path)
+    elif get_image_backend() == "accimage":
+        return fold.accimage_loader(path)
+    else:
+        return fold.pil_loader(path)
+
+
+class ImageFolder(fold.ImageFolder, DatasetFolder):
+
+    def __init__(
+            self,
+            root: str,
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            loader: Callable[[str], Any] = default_loader,
+            is_valid_file: Optional[Callable[[str], bool]] = None,
+    ):
+        super(ImageFolder, self).__init__(root=root,
+                                          transform=transform,
+                                          target_transform=target_transform,
+                                          loader=loader,
+                                          is_valid_file=is_valid_file)

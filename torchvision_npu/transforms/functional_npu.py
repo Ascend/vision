@@ -12,22 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 import numpy as np
 import torch
 import torch_npu
 from torch import Tensor
 from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
-from typing import List
 
 
 def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
-    mean = torch.as_tensor(mean).npu(non_blocking=True)
-    std = torch.as_tensor(std).npu(non_blocking=True)
-    if mean.ndim == 1:
-        mean = mean.view(1, -1, 1, 1)
-    if std.ndim == 1:
-        std = std.view(1, -1, 1, 1)
     if not inplace:
         return torch_npu.image_normalize(tensor, mean, std, 0)
     return torch_npu.image_normalize_(tensor, mean, std, 0)
@@ -48,11 +43,15 @@ def resized_crop(
 ) -> Tensor:
     interpolations = [InterpolationMode.NEAREST, InterpolationMode.BILINEAR]
     if interpolation not in interpolations:
-        raise ValueError(f'Tochvision_Npu cannot support this interpolation method')
-    width, height = F._get_image_size(img)
+        raise ValueError(f'Tochvision_NPU cannot support this interpolation method')
+    width, height = img.shape[-1], img.shape[-2]
     if width <= 1 or height <= 1:
         return img
     boxes = np.minimum([i / (height - 1), j / (width - 1), (i + h) / (height - 1), (j + w) / (width - 1)], 1).tolist()
     box_index = [0]
     crop_size = size
     return torch_npu.crop_and_resize(img, boxes, box_index, crop_size, method=interpolation.value)
+
+
+def to_tensor(pic) -> Tensor:
+    return torch_npu.img_to_tensor(pic)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import torchvision
-from torchvision_npu.datasets import add_dataset_imagefolder, npu_loader
+from torchvision_npu.datasets import add_datasets_folder
 from torchvision_npu.ops.deform_conv import patch_deform_conv
 
 from .extensions import _HAS_OPS
@@ -50,7 +50,7 @@ def patch_init_methods():
 
 def apply_class_patches():
     patch_init_methods()
-    add_dataset_imagefolder()
+    add_datasets_folder()
     patch_transform_methods()
     patch_deform_conv()
 

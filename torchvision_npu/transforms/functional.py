@@ -33,6 +33,7 @@ def patch_transform_methods():
     setattr(torchvision.transforms.functional, "to_tensor_ori", torchvision.transforms.functional.to_tensor)
     torchvision.transforms.functional.to_tensor = to_tensor
 
+
 def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
     """Normalize a float tensor image with mean and standard deviation.
     This transform does not support PIL Image.
@@ -83,9 +84,10 @@ def hflip(img: Tensor) -> Tensor:
         return F_pil.hflip(img)
 
     if hasattr(img, 'device') and hasattr(img.device, 'type') and img.device.type == 'npu':
-       return F_npu.hflip(img)
+        return F_npu.hflip(img)
 
     return F_t.hflip(img)
+
 
 def resized_crop(
     img: Tensor,
@@ -94,8 +96,7 @@ def resized_crop(
     height: int,
     width: int,
     size: List[int],
-    interpolation: torchvision.transforms.InterpolationMode = torchvision.transforms.InterpolationMode.BILINEAR,
-    antialias: Optional[bool] = None,
+    interpolation: torchvision.transforms.InterpolationMode = torchvision.transforms.InterpolationMode.BILINEAR
 ) -> Tensor:
     """Crop the given image and resize it to desired size.
     If the image is torch Tensor, it is expected
@@ -145,7 +146,6 @@ def to_tensor(pic) -> Tensor:
     Returns:
         Tensor: Converted image.
     """
-    if isinstance(pic, torch.Tensor):
-        if pic.device.type == 'npu':
-            return pic.to(dtype=torch.get_default_dtype(), non_blocking=True).div(255)
-    return torchvision.transforms.functional.to_tensor_ori(pic)
+    if isinstance(pic, torch.Tensor) and pic.device.type == 'npu' and pic.dtype == torch.uint8:
+        return F_npu.to_tensor(pic)
+    return F.to_tensor_ori(pic)
