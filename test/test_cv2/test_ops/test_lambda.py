@@ -17,15 +17,17 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import cv2
+import torchvision_npu
 
 
 def custom_crop(img, pos, size):
-    ow, oh = img.size
+    ow, oh = img.shape[:2][::-1]
     x1, y1 = pos
     tw = th = size
 
     if ow > tw or oh > th:
-        return img.crop((x1, y1, x1 + tw, y1 + th))
+        return cv2.crop((x1, y1, x1 + tw, y1 + th))
     return img
 
 
@@ -39,13 +41,13 @@ def test_lambda(img_path):
     pil_img = Image.open(img_path)
 
     # using pil lambda
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_lambda = trans.Lambda(lambda img: custom_crop(pil_img, (5, 5), 224)),
 
-    # using cv2+convert lambda
-    import torchvision_npu
+    # using cv2 lambda
     torchvision_npu.set_image_backend("cv2")
-    torch.manual_seed(10)
-    cv2_lambda = trans.Lambda(lambda img: custom_crop(pil_img, (5, 5), 224)),
+    cv2_img = np.asarray(pil_img)
+    cv2_lambda = trans.Lambda(lambda img: custom_crop(cv2_img, (5, 5), 224)),
 
     assert type(pil_lambda) == type(cv2_lambda)

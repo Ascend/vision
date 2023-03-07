@@ -149,6 +149,8 @@ def default_loader(path: str) -> Any:
 
     if get_image_backend() == 'npu':
         return npu_loader(path)
+    elif get_image_backend() == 'cv2':
+        return cv2_loader(path)
     elif get_image_backend() == "accimage":
         return fold.accimage_loader(path)
     else:

@@ -24,7 +24,6 @@ from torchvision.transforms import functional_pil as F_pil
 __all__ = [
     "MAX_VALUES_BY_DTYPE",
     "clip",
-    "format_convert",
     "preserve_shape",
     "preserve_channel_dim",
     "is_rgb_image",
@@ -36,11 +35,6 @@ __all__ = [
     "_pillow2array"
 ]
 
-translate_white_list = ['resize', 'crop', 'center', 'hflip', 'vflip', 'adjust_brightness', 'adjust_contrast',
-                        'adjust_saturation', 'rotate', 'affine', 'perspective', 'gaussian_blur', 'invert', 'solarize',
-                        'adjust_sharpness', 'autocontrast', 'equalize',
-                        ]  # list内算子pil快于cv2+格式转换，不进行格式转化
-
 P = ParamSpec("P")
 
 MAX_VALUES_BY_DTYPE = {
@@ -49,34 +43,6 @@ MAX_VALUES_BY_DTYPE = {
     np.dtype("uint32"): 4294967295,
     np.dtype("float32"): 1.0,
 }
-
-
-def format_convert(func):
-    """
-    convert pil ops to cv2 format or not, and choose the fastest implementation
-    Args:
-        func:  pil ops, eg. torchvision.transforms.Resize
-
-    Returns: pil image
-
-    """
-
-    @wraps(func)
-    def wrapper(img, *args, **kwargs):
-        trans = False
-        if isinstance(img, Image.Image) and func.__name__ not in translate_white_list:
-            img = _pillow2array(img, flag='color', channel_order='rgb')
-            trans = True
-
-        func_ops = func
-        if isinstance(img, Image.Image):
-            func_ops = F_pil.__dict__[func.__name__]
-        img = func_ops(img, *args, **kwargs)
-        if trans:
-            img = Image.fromarray(img)
-        return img
-
-    return wrapper
 
 
 def clip(img: np.ndarray, dtype: np.dtype, maxval: float) -> np.ndarray:

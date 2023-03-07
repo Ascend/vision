@@ -17,6 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -33,15 +34,16 @@ def test_posterize(img_path, bit, p):
     pil_img = Image.open(img_path)
 
     # using pil posterize
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_posterize = trans.RandomPosterize(bits=bit, p=p)(pil_img)
 
-    # using cv2+convert posterize
-    import torchvision_npu
+    # using cv2 posterize
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_posterize = trans.RandomPosterize(bits=bit, p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_posterize = trans.RandomPosterize(bits=bit, p=p)(cv2_img)
 
-    assert type(pil_posterize) == type(cv2_posterize)
-    assert pil_posterize.size == cv2_posterize.size
-    assert (np.array(pil_posterize) == np.array(cv2_posterize)).all()
+    assert isinstance(pil_posterize, Image.Image) and isinstance(cv2_posterize, np.ndarray)
+    assert pil_posterize.size == cv2_posterize.shape[:2][::-1]
+    assert (np.array(pil_posterize) == cv2_posterize).all()

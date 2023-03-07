@@ -17,6 +17,8 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -33,15 +35,17 @@ def test_equalize(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil equalize
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_equalize = trans.RandomEqualize(p=p)(pil_img)
 
     # using cv2+convert equalize
-    import torchvision_npu
+
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_equalize = trans.RandomEqualize(p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_equalize = trans.RandomEqualize(p=p)(cv2_img)
 
-    assert type(pil_equalize) == type(cv2_equalize)
-    assert pil_equalize.size == cv2_equalize.size
-    assert (np.array(pil_equalize) == np.array(cv2_equalize)).all()
+    assert isinstance(pil_equalize, Image.Image) and isinstance(cv2_equalize, np.ndarray)
+    assert pil_equalize.size == cv2_equalize.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_equalize, Image.fromarray(cv2_equalize))

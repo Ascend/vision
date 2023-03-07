@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image
 import pytest
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -32,12 +33,13 @@ def test_pil2tensor(img_path):
     pil_img = Image.open(img_path)
 
     # using pil totensor
+    torchvision_npu.set_image_backend("PIL")
     pil_totensor = trans.PILToTensor()(pil_img)
 
     # using cv2 totensor
-    import torchvision_npu
     torchvision_npu.set_image_backend("cv2")
-    cv2_totensor = trans.PILToTensor()(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_totensor = trans.PILToTensor()(cv2_img)
 
     assert type(pil_totensor) == type(cv2_totensor)
     assert pil_totensor.shape == cv2_totensor.shape

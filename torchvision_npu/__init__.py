@@ -37,9 +37,8 @@ def set_image_backend(backend):
     _image_backend = backend
     print('transform backend: ', torchvision.get_image_backend())
     if torchvision.get_image_backend() == 'cv2':
-        print('If you want to play the maximum performance of cv2, set the input to np.ndarray type. '
-              'If the data is loaded with ImageFolder,'
-              ' you can use torchvision.datasets.ImageFolder(loader=torchvision_npu.datasets.folder.cv2_loader).')
+        print('If you use the cv2 backend, must install opencv-python already and the input must be np.ndarray, '
+              'otherwise an exception will be thrown.')
 
 
 def get_image_backend():

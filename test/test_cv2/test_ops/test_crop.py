@@ -18,6 +18,8 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
+from test_cv2_utils import image_similarity_vectors_via_cos
 
 
 @pytest.mark.parametrize(
@@ -35,20 +37,21 @@ def test_crop(img_path, size, padding, pad_if_need, fill, padding_mode):
     pil_img = Image.open(img_path)
 
     # using pil crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_crop = trans.RandomCrop(size=size, padding=padding, pad_if_needed=pad_if_need, fill=fill,
                                 padding_mode=padding_mode)(pil_img)
 
-    # using cv2+convert crop
-    import torchvision_npu
+    # using cv2 crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
+    cv2_img = np.asarray(pil_img)
     cv2_crop = trans.RandomCrop(size=size, padding=padding, pad_if_needed=pad_if_need, fill=fill,
-                                padding_mode=padding_mode)(pil_img)
+                                padding_mode=padding_mode)(cv2_img)
 
-    assert type(pil_crop) == type(cv2_crop)
-    assert pil_crop.size == cv2_crop.size
-    assert (np.array(pil_crop) == np.array(cv2_crop)).all()
+    assert isinstance(pil_crop, Image.Image) and isinstance(cv2_crop, np.ndarray)
+    assert pil_crop.size == cv2_crop.shape[:2][::-1]
+    assert (np.array(pil_crop) == cv2_crop).all()
 
 
 @pytest.mark.parametrize(
@@ -65,18 +68,19 @@ def test_center_crop(img_path, size):
     pil_img = Image.open(img_path)
 
     # using pil center crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_center_crop = trans.CenterCrop(size=size)(pil_img)
 
-    # using cv2+convert center crop
-    import torchvision_npu
+    # using cv2 center crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_center_crop = trans.CenterCrop(size=size)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_center_crop = trans.CenterCrop(size=size)(cv2_img)
 
-    assert type(pil_center_crop) == type(cv2_center_crop)
-    assert pil_center_crop.size == cv2_center_crop.size
-    assert (np.array(pil_center_crop) == np.array(cv2_center_crop)).all()
+    assert isinstance(pil_center_crop, Image.Image) and isinstance(cv2_center_crop, np.ndarray)
+    assert pil_center_crop.size == cv2_center_crop.shape[:2][::-1]
+    assert (np.array(pil_center_crop) == cv2_center_crop).all()
 
 
 @pytest.mark.parametrize(
@@ -93,20 +97,21 @@ def test_resized_crop(img_path, size, scale, ratio, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil center crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_resized_crop = trans.RandomResizedCrop(size=size, scale=scale, ratio=ratio, interpolation=interpolation)(
         pil_img)
 
-    # using cv2+convert center crop
-    import torchvision_npu
+    # using cv2 center crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
+    cv2_img = np.asarray(pil_img)
     cv2_resized_crop = trans.RandomResizedCrop(size=size, scale=scale, ratio=ratio, interpolation=interpolation)(
-        pil_img)
+        cv2_img)
 
-    assert type(pil_resized_crop) == type(cv2_resized_crop)
-    assert pil_resized_crop.size == cv2_resized_crop.size
-    assert (np.array(pil_resized_crop) == np.array(cv2_resized_crop)).all()
+    assert isinstance(pil_resized_crop, Image.Image) and isinstance(cv2_resized_crop, np.ndarray)
+    assert pil_resized_crop.size == cv2_resized_crop.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_resized_crop, Image.fromarray(cv2_resized_crop))
 
 
 @pytest.mark.parametrize(
@@ -123,20 +128,21 @@ def test_sized_crop(img_path, size, scale, ratio, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil center crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_resized_crop = trans.RandomSizedCrop(size=size, scale=scale, ratio=ratio, interpolation=interpolation)(
         pil_img)
 
-    # using cv2+convert center crop
-    import torchvision_npu
+    # using cv2 center crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
+    cv2_img = np.asarray(pil_img)
     cv2_resized_crop = trans.RandomSizedCrop(size=size, scale=scale, ratio=ratio, interpolation=interpolation)(
-        pil_img)
+        cv2_img)
 
-    assert type(pil_resized_crop) == type(cv2_resized_crop)
-    assert pil_resized_crop.size == cv2_resized_crop.size
-    assert (np.array(pil_resized_crop) == np.array(cv2_resized_crop)).all()
+    assert isinstance(pil_resized_crop, Image.Image) and isinstance(cv2_resized_crop, np.ndarray)
+    assert pil_resized_crop.size == cv2_resized_crop.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_resized_crop, Image.fromarray(cv2_resized_crop))
 
 
 @pytest.mark.parametrize(
@@ -153,19 +159,20 @@ def test_five_crop(img_path, size):
     pil_img = Image.open(img_path)
 
     # using pil five crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_five_crop = trans.FiveCrop(size=size)(pil_img)
 
-    # using cv2+convert five crop
-    import torchvision_npu
+    # using cv2 five crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_five_crop = trans.FiveCrop(size=size)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_five_crop = trans.FiveCrop(size=size)(cv2_img)
 
     for pil_crop_img, cv2_crop_img in zip(pil_five_crop, cv2_five_crop):
-        assert type(pil_crop_img) == type(cv2_crop_img)
-        assert pil_crop_img.size == cv2_crop_img.size
-        assert (np.array(pil_crop_img) == np.array(cv2_crop_img)).all()
+        assert isinstance(pil_crop_img, Image.Image) and isinstance(cv2_crop_img, np.ndarray)
+        assert pil_crop_img.size == cv2_crop_img.shape[:2][::-1]
+        assert (np.array(pil_crop_img) == cv2_crop_img).all()
 
 
 @pytest.mark.parametrize(
@@ -182,16 +189,17 @@ def test_ten_crop(img_path, size):
     pil_img = Image.open(img_path)
 
     # using pil ten crop
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_ten_crop = trans.TenCrop(size=size)(pil_img)
 
-    # using cv2+convert ten crop
-    import torchvision_npu
+    # using cv2 ten crop
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_ten_crop = trans.TenCrop(size=size)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_ten_crop = trans.TenCrop(size=size)(cv2_img)
 
     for pil_crop_img, cv2_crop_img in zip(pil_ten_crop, cv2_ten_crop):
-        assert type(pil_crop_img) == type(cv2_crop_img)
-        assert pil_crop_img.size == cv2_crop_img.size
-        assert (np.array(pil_crop_img) == np.array(cv2_crop_img)).all()
+        assert isinstance(pil_crop_img, Image.Image) and isinstance(cv2_crop_img, np.ndarray)
+        assert pil_crop_img.size == cv2_crop_img.shape[:2][::-1]
+        assert (np.array(pil_crop_img) == cv2_crop_img).all()

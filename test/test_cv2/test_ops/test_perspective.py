@@ -19,6 +19,7 @@ import pytest
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -35,17 +36,18 @@ def test_perspective(img_path, distortion_scale, p, interpolation, fill):
     pil_img = Image.open(img_path)
 
     # using pil perspective
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_perspective = trans.RandomPerspective(distortion_scale=distortion_scale, p=p, interpolation=interpolation,
                                               fill=fill)(pil_img)
 
     # using cv2+convert perspective
-    import torchvision_npu
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
+    cv2_img = np.asarray(pil_img)
     cv2_perspective = trans.RandomPerspective(distortion_scale=distortion_scale, p=p, interpolation=interpolation,
-                                              fill=fill)(pil_img)
+                                              fill=fill)(cv2_img)
 
-    assert type(pil_perspective) == type(cv2_perspective)
-    assert pil_perspective.size == cv2_perspective.size
-    assert image_similarity_vectors_via_cos(pil_perspective, cv2_perspective)
+    assert isinstance(pil_perspective, Image.Image) and isinstance(cv2_perspective, np.ndarray)
+    assert pil_perspective.size == cv2_perspective.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_perspective, Image.fromarray(cv2_perspective))

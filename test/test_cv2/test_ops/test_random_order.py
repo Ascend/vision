@@ -19,6 +19,7 @@ import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
 import random
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -42,16 +43,17 @@ def test_compose(img_path, transforms):
     # using pil order
     torch.manual_seed(10)
     random.seed(10)
+    torchvision_npu.set_image_backend("PIL")
     pil_order = trans.RandomOrder(transforms=transforms)(
         pil_img)
 
-    # using cv2+convert order
-    import torchvision_npu
+    # using cv2 order
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
     random.seed(10)
-    cv2_order = trans.RandomOrder(transforms=transforms)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_order = trans.RandomOrder(transforms=transforms)(cv2_img)
 
-    assert type(pil_order) == type(cv2_order)
-    assert pil_order.size == cv2_order.size
-    assert image_similarity_vectors_via_cos(pil_order, cv2_order)
+    assert isinstance(pil_order, Image.Image) and isinstance(cv2_order, np.ndarray)
+    assert pil_order.size == cv2_order.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_order, Image.fromarray(cv2_order))

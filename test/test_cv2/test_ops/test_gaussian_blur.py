@@ -16,6 +16,8 @@ from PIL import Image
 import pytest
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
+import numpy as np
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -32,13 +34,14 @@ def test_gaussian_blur(img_path, kernel_size, sigma):
     pil_img = Image.open(img_path)
 
     # using pil gaussian_blur
+    torchvision_npu.set_image_backend("PIL")
     pil_gaussian_blur = trans.GaussianBlur(kernel_size=kernel_size, sigma=sigma)(pil_img)
 
-    # using cv2+convert gaussian_blur
-    import torchvision_npu
+    # using cv2 gaussian_blur
     torchvision_npu.set_image_backend("cv2")
-    cv2_gaussian_blur = trans.GaussianBlur(kernel_size=kernel_size, sigma=sigma)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_gaussian_blur = trans.GaussianBlur(kernel_size=kernel_size, sigma=sigma)(cv2_img)
 
-    assert type(pil_gaussian_blur) == type(cv2_gaussian_blur)
-    assert pil_gaussian_blur.size == cv2_gaussian_blur.size
-    assert image_similarity_vectors_via_cos(pil_gaussian_blur, cv2_gaussian_blur)
+    assert isinstance(pil_gaussian_blur, Image.Image) and isinstance(cv2_gaussian_blur, np.ndarray)
+    assert pil_gaussian_blur.size == cv2_gaussian_blur.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_gaussian_blur, Image.fromarray(cv2_gaussian_blur))

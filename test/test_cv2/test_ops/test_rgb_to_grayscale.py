@@ -18,6 +18,7 @@ import pytest
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -34,16 +35,17 @@ def test_grayscale(img_path, num_out_channels):
     pil_img = Image.open(img_path)
 
     # using pil grayscale
+    torchvision_npu.set_image_backend("PIL")
     pil_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
 
-    # using cv2+convert grayscale
-    import torchvision_npu
+    # using cv2 grayscale
     torchvision_npu.set_image_backend("cv2")
-    cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(cv2_img)
 
-    assert type(pil_grayscale) == type(cv2_grayscale)
-    assert pil_grayscale.size == cv2_grayscale.size
-    assert image_similarity_vectors_via_cos(pil_grayscale, cv2_grayscale)
+    assert isinstance(pil_grayscale, Image.Image) and isinstance(cv2_grayscale, np.ndarray)
+    assert pil_grayscale.size == cv2_grayscale.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_grayscale, Image.fromarray(cv2_grayscale))
 
 
 @pytest.mark.parametrize(
@@ -60,15 +62,16 @@ def test_random_grayscale(img_path, num_out_channels):
     pil_img = Image.open(img_path)
 
     # using pil grayscale
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
 
-    # using cv2+convert grayscale
-    import torchvision_npu
+    # using cv2 grayscale
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(cv2_img)
 
-    assert type(pil_grayscale) == type(cv2_grayscale)
-    assert pil_grayscale.size == cv2_grayscale.size
-    assert image_similarity_vectors_via_cos(pil_grayscale, cv2_grayscale)
+    assert isinstance(pil_grayscale, Image.Image) and isinstance(cv2_grayscale, np.ndarray)
+    assert pil_grayscale.size == cv2_grayscale.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_grayscale, Image.fromarray(cv2_grayscale))

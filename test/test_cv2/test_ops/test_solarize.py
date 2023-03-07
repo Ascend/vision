@@ -17,6 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -33,15 +34,16 @@ def test_solarize(img_path, threshold, p):
     pil_img = Image.open(img_path)
 
     # using pil solarize
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_solarize = trans.RandomSolarize(threshold=threshold, p=p)(pil_img)
 
-    # using cv2+convert solarize
-    import torchvision_npu
+    # using cv2 solarize
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_solarize = trans.RandomSolarize(threshold=threshold, p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_solarize = trans.RandomSolarize(threshold=threshold, p=p)(cv2_img)
 
-    assert type(pil_solarize) == type(cv2_solarize)
-    assert pil_solarize.size == cv2_solarize.size
-    assert (np.array(pil_solarize) == np.array(cv2_solarize)).all()
+    assert isinstance(pil_solarize, Image.Image) and isinstance(cv2_solarize, np.ndarray)
+    assert pil_solarize.size == cv2_solarize.shape[:2][::-1]
+    assert (np.array(pil_solarize) == cv2_solarize).all()

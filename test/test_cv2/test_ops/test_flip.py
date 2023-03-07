@@ -17,6 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -33,18 +34,19 @@ def test_vfilp(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil vflip
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_vflip = trans.RandomVerticalFlip(p=p)(pil_img)
 
-    # using cv2+convert vflip
-    import torchvision_npu
+    # using cv2 vflip
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_vflip = trans.RandomVerticalFlip(p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_vflip = trans.RandomVerticalFlip(p=p)(cv2_img)
 
-    assert type(pil_vflip) == type(cv2_vflip)
-    assert pil_vflip.size == cv2_vflip.size
-    assert (np.array(pil_vflip) == np.array(cv2_vflip)).all()
+    assert isinstance(pil_vflip, Image.Image) and isinstance(cv2_vflip, np.ndarray)
+    assert pil_vflip.size == cv2_vflip.shape[:2][::-1]
+    assert (np.array(pil_vflip) == cv2_vflip).all()
 
 
 @pytest.mark.parametrize(
@@ -61,15 +63,16 @@ def test_hfilp(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil hflip
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_hflip = trans.RandomHorizontalFlip(p=p)(pil_img)
 
-    # using cv2+convert hflip
-    import torchvision_npu
+    # using cv2 hflip
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_hflip = trans.RandomHorizontalFlip(p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_hflip = trans.RandomHorizontalFlip(p=p)(cv2_img)
 
-    assert type(pil_hflip) == type(cv2_hflip)
-    assert pil_hflip.size == cv2_hflip.size
-    assert (np.array(pil_hflip) == np.array(cv2_hflip)).all()
+    assert isinstance(pil_hflip, Image.Image) and isinstance(cv2_hflip, np.ndarray)
+    assert pil_hflip.size == cv2_hflip.shape[:2][::-1]
+    assert (np.array(pil_hflip) == cv2_hflip).all()

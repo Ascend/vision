@@ -17,6 +17,8 @@ import pytest
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
+import numpy as np
 
 
 @pytest.mark.parametrize(
@@ -38,19 +40,22 @@ def test_compose(img_path, transforms):
     pil_img = Image.open(img_path)
 
     # using pil compose
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_compose = trans.Compose(transforms=transforms)(
         pil_img)
 
-    # using cv2+convert compose
-    import torchvision_npu
+    # using cv2 compose
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_compose = trans.Compose(transforms=transforms)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_compose = trans.Compose(transforms=transforms)(cv2_img)
     if isinstance(pil_compose, torch.Tensor):
         pil_compose = trans.ToPILImage()(pil_compose)
         cv2_compose = trans.ToPILImage()(cv2_compose)
-
-    assert type(pil_compose) == type(cv2_compose)
-    assert pil_compose.size == cv2_compose.size
-    assert image_similarity_vectors_via_cos(pil_compose, cv2_compose)
+        assert pil_compose.size == cv2_compose.size
+        assert (np.array(pil_compose) == np.array(cv2_compose)).all()
+    else:
+        assert isinstance(pil_compose, Image.Image) and isinstance(cv2_compose, np.ndarray)
+        assert pil_compose.size == cv2_compose.shape[:2][::-1]
+        assert image_similarity_vectors_via_cos(pil_compose, Image.fromarray(cv2_compose))

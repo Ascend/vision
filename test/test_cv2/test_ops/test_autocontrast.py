@@ -17,7 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
-
+import torchvision_npu
 
 @pytest.mark.parametrize(
     ["img_path", "p"],
@@ -34,15 +34,15 @@ def test_autocontrast(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil Autocontrast
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_autocontrast = trans.RandomAutocontrast(p=p)(pil_img)
 
-    # using cv2+convert Autocontrast
-    import torchvision_npu
+    # using cv2 Autocontrast
     torchvision_npu.set_image_backend("cv2")
-    torch.manual_seed(10)
-    cv2_autocontrast = trans.RandomAutocontrast(p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_autocontrast = trans.RandomAutocontrast(p=p)(cv2_img)
 
-    assert type(pil_autocontrast) == type(cv2_autocontrast)
-    assert pil_autocontrast.size == cv2_autocontrast.size
-    assert (np.array(pil_autocontrast) == np.array(cv2_autocontrast)).all()
+    assert isinstance(pil_autocontrast, Image.Image) and isinstance(cv2_autocontrast, np.ndarray)
+    assert pil_autocontrast.size == cv2_autocontrast.shape[:2][::-1]
+    assert (np.array(pil_autocontrast) == cv2_autocontrast).all()

@@ -19,7 +19,6 @@ from PIL import Image
 import cv2
 import numpy as np
 
-
 try:
     import accimage
 except ImportError:
@@ -28,7 +27,6 @@ except ImportError:
 from .utils import (
     MAX_VALUES_BY_DTYPE,
     clip,
-    format_convert,
     preserve_shape,
     preserve_channel_dim,
     is_rgb_image,
@@ -40,17 +38,19 @@ from .utils import (
 )
 
 
-@format_convert
+@preserve_shape
 def hflip(img):
+    # Opencv is faster than numpy only in case of
+    # non-gray scale 8bits images
+    if img.ndim == 3 and img.shape[2] > 1 and img.dtype == np.uint8:
+        return cv2.flip(img, 1)
     return np.ascontiguousarray(img[:, ::-1, ...])
 
 
-@format_convert
 def vflip(img):
     return np.ascontiguousarray(img[::-1, ...])
 
 
-@format_convert
 @preserve_channel_dim
 def resize(img, size, interpolation=cv2.INTER_LINEAR):
     if isinstance(size, int) or len(size) == 1:
@@ -72,7 +72,6 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
     return resize_fn(img)
 
 
-@format_convert
 def crop(img, top, left, height, width):
     x_min = left
     y_min = top
@@ -103,7 +102,6 @@ def crop(img, top, left, height, width):
     return crop_img
 
 
-@format_convert
 def pad(img, padding, fill, padding_mode):
     if isinstance(fill, tuple):
         assert len(fill) == img.shape[-1]
@@ -139,7 +137,6 @@ def pad(img, padding, fill, padding_mode):
     return img
 
 
-@format_convert
 @preserve_channel_dim
 def rotate(img, angle, interpolation=cv2.INTER_LINEAR, expand=False, center=None, fill=None):
     height, width = img.shape[:2]
@@ -153,8 +150,8 @@ def rotate(img, angle, interpolation=cv2.INTER_LINEAR, expand=False, center=None
         new_h = int(height * np.abs(matrix[0, 0]) + width * np.abs(matrix[0, 1]))
         matrix[0, 2] += (new_w - width) / 2
         matrix[1, 2] += (new_h - height) / 2
-        width = new_w
-        height = new_h
+        width = new_w + 2
+        height = new_h + 2
 
     border_value = fill
     warp_fn = _maybe_process_in_chunks(
@@ -163,7 +160,6 @@ def rotate(img, angle, interpolation=cv2.INTER_LINEAR, expand=False, center=None
     return warp_fn(img)
 
 
-@format_convert
 @preserve_channel_dim
 def affine(img, matrix, interpolation=cv2.INTER_LINEAR, fill=None):
     height, width = img.shape[:2]
@@ -174,12 +170,10 @@ def affine(img, matrix, interpolation=cv2.INTER_LINEAR, fill=None):
     return warp_fn(img)
 
 
-@format_convert
 def invert(img):
     return MAX_VALUES_BY_DTYPE[img.dtype] - img
 
 
-@format_convert
 @preserve_channel_dim
 def perspective(img, matrix, interpolation=cv2.INTER_LINEAR, fill=None):
     height, width = img.shape[:2]
@@ -196,7 +190,6 @@ def _adjust_brightness_uint8(img, factor):
     return cv2.LUT(img, lut)
 
 
-@format_convert
 @preserve_shape
 def adjust_brightness(img, factor):
     if factor == 0:
@@ -218,7 +211,6 @@ def _adjust_contrast_uint8(img, factor, mean):
     return cv2.LUT(img, lut)
 
 
-@format_convert
 @preserve_shape
 def adjust_contrast(img, factor):
     if factor == 1:
@@ -244,7 +236,6 @@ def adjust_contrast(img, factor):
     )
 
 
-@format_convert
 @preserve_shape
 def adjust_saturation(img, factor, gamma=0):
     if factor == 1:
@@ -278,7 +269,6 @@ def _adjust_hue_uint8(img, factor):
     return cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
 
 
-@format_convert
 def adjust_hue(img, factor):
     if is_grayscale_image(img):
         return img
@@ -294,7 +284,6 @@ def adjust_hue(img, factor):
     return cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
 
 
-@format_convert
 @preserve_shape
 def posterize(img, bits):
     bits = np.uint8(bits)
@@ -335,7 +324,6 @@ def posterize(img, bits):
     return result_img
 
 
-@format_convert
 def solarize(img, threshold=128):
     """Invert all pixel values above a threshold.
 
@@ -366,7 +354,6 @@ def solarize(img, threshold=128):
     return result_img
 
 
-@format_convert
 def adjust_sharpness(img, factor=1.):
     kernel = np.array([[1., 1., 1.], [1., 5., 1.], [1., 1., 1.]]) / 13
     assert isinstance(kernel, np.ndarray), \
@@ -382,46 +369,36 @@ def adjust_sharpness(img, factor=1.):
     return sharpened_img.astype(img.dtype)
 
 
-@format_convert
 def autocontrast(img, cutoff=0):
-    def _auto_contrast_channel(im, c, cutoff):
-        im = im[:, :, c]
-        # Compute the histogram of the image channel.
-        histo = np.histogram(im, 256, (0, 255))[0]
-        # Remove cut-off percent pixels from histo
-        histo_sum = np.cumsum(histo)
-        cut_low = histo_sum[-1] * cutoff[0] // 100
-        cut_high = histo_sum[-1] - histo_sum[-1] * cutoff[1] // 100
-        histo_sum = np.clip(histo_sum, cut_low, cut_high) - cut_low
-        histo = np.concatenate([[histo_sum[0]], np.diff(histo_sum)], 0)
+    n_bins = 256
 
-        # Compute mapping
-        low, high = np.nonzero(histo)[0][0], np.nonzero(histo)[0][-1]
-        # If all the values have been cut off, return the origin img
-        if low >= high:
-            return im
-        scale = 255.0 / (high - low)
-        offset = -low * scale
-        lut = np.array(range(256))
-        lut = lut * scale + offset
-        lut = np.clip(lut, 0, 255)
-        return lut[im]
+    def tune_channel(ch):
+        n = ch.size
+        cut = cutoff * n // 100
+        if cut == 0:
+            high, low = ch.max(), ch.min()
+        else:
+            hist = cv2.calcHist([ch], [0], None, [n_bins], [0, n_bins])
+            low = np.argwhere(np.cumsum(hist) > cut)
+            low = 0 if low.shape[0] == 0 else low[0]
+            high = np.argwhere(np.cumsum(hist[::-1]) > cut)
+            high = n_bins - 1 if high.shape[0] == 0 else n_bins - 1 - high[0]
+        if high <= low:
+            table = np.arange(n_bins)
+        else:
+            scale = (n_bins - 1) / (high - low)
+            offset = -low * scale
+            table = np.arange(n_bins) * scale + offset
+            table[table < 0] = 0
+            table[table > n_bins - 1] = n_bins - 1
+        table = table.clip(0, 255).astype(np.uint8)
+        return table[ch]
 
-    if isinstance(cutoff, (int, float)):
-        cutoff = (cutoff, cutoff)
-    else:
-        assert isinstance(cutoff, tuple), 'cutoff must be of type int, ' \
-                                          f'float or tuple, but got {type(cutoff)} instead.'
-    # Auto adjusts contrast for each channel independently and then stacks
-    # the result.
-    s1 = _auto_contrast_channel(img, 0, cutoff)
-    s2 = _auto_contrast_channel(img, 1, cutoff)
-    s3 = _auto_contrast_channel(img, 2, cutoff)
-    contrasted_img = np.stack([s1, s2, s3], axis=-1)
-    return contrasted_img.astype(img.dtype)
+    channels = [tune_channel(ch) for ch in cv2.split(img)]
+    out = cv2.merge(channels)
+    return out
 
 
-@format_convert
 def equalize(img):
     if img.dtype != np.uint8:
         raise TypeError("Image must have uint8 channel type")
@@ -431,22 +408,19 @@ def equalize(img):
     return result_img
 
 
-@format_convert
 @preserve_shape
 def gaussian_blur(img, ksize, sigma):
     blur_fn = _maybe_process_in_chunks(cv2.GaussianBlur, ksize=ksize, sigmaX=sigma[0], sigmaY=sigma[1])
     return blur_fn(img)
 
 
-@format_convert
 def to_grayscale(img, num_output_channels):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
     if num_output_channels == 1:
         return img
     elif num_output_channels == 3:
-        img = np.dstack([img, img, img])
-        return img
+        return cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     else:
         raise ValueError('num_output_channels should be either 1 or 3')
 

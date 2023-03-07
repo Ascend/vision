@@ -28,166 +28,132 @@ test_samples = {
     "Resize": {
         "pil_ops": "transforms.Resize((224,224))(pil_img)",
         "cv2_ops": "transforms.Resize((224,224))(cv2_img)",
-        "cv2_trans_ops": "transforms.Resize((224,224))(pil_img)",
     },
     "Scale": {
         "pil_ops": "transforms.Scale((224,224))(pil_img)",
         "cv2_ops": "transforms.Scale((224,224))(cv2_img)",
-        "cv2_trans_ops": "transforms.Scale((224,224))(pil_img)",
     },
     "PILToTensor": {
         "pil_ops": "transforms.PILToTensor()(pil_img)",
         "cv2_ops": "transforms.PILToTensor()(cv2_img)",
-        "cv2_trans_ops": "transforms.PILToTensor()(pil_img)",
     },
     "ToTensor": {
         "pil_ops": "transforms.ToTensor()(pil_img)",
         "cv2_ops": "transforms.ToTensor()(cv2_img)",
-        "cv2_trans_ops": "transforms.ToTensor()(pil_img)",
     },
     "CenterCrop": {
         "pil_ops": "transforms.CenterCrop((224,224))(pil_img)",
         "cv2_ops": "transforms.CenterCrop((224,224))(cv2_img)",
-        "cv2_trans_ops": "transforms.CenterCrop((224,224))(pil_img)",
     },
     "Pad": {
         "pil_ops": "transforms.Pad([224,224],fill=0,padding_mode='constant')(pil_img)",
         "cv2_ops": "transforms.Pad([224,224],fill=0,padding_mode='constant')(cv2_img)",
-        "cv2_trans_ops": "transforms.Pad([224,224],fill=0,padding_mode='constant')(pil_img)",
     },
     "RandomCrop": {
         "pil_ops": "transforms.RandomCrop((224,224))(pil_img)",
         "cv2_ops": "transforms.RandomCrop((224,224))(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomCrop((224,224))(pil_img)",
     },
     "RandomHorizontalFlip": {
         "pil_ops": "transforms.RandomHorizontalFlip(p=0.5)(pil_img)",
         "cv2_ops": "transforms.RandomHorizontalFlip(p=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomHorizontalFlip(p=0.5)(pil_img)",
     },
     "RandomVerticalFlip": {
         "pil_ops": "transforms.RandomVerticalFlip(p=0.5)(pil_img)",
         "cv2_ops": "transforms.RandomVerticalFlip(p=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomVerticalFlip(p=0.5)(pil_img)",
     },
     "RandomResizedCrop": {
         "pil_ops": "transforms.RandomResizedCrop((224,224))(pil_img)",
         "cv2_ops": "transforms.RandomResizedCrop((224,224))(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomResizedCrop((224,224))(pil_img)",
     },
     "FiveCrop": {
         "pil_ops": "transforms.FiveCrop(32)(pil_img)",
         "cv2_ops": "transforms.FiveCrop(32)(cv2_img)",
-        "cv2_trans_ops": "transforms.FiveCrop(32)(pil_img)",
     },
     "TenCrop": {
         "pil_ops": "transforms.TenCrop(32)(pil_img)",
         "cv2_ops": "transforms.TenCrop(32)(cv2_img)",
-        "cv2_trans_ops": "transforms.TenCrop(32)(pil_img)",
     },
     "ColorJitter_bright": {
         "pil_ops": "transforms.ColorJitter(brightness=[0.01,0.05])(pil_img)",
         "cv2_ops": "transforms.ColorJitter(brightness=[0.01,0.05])(cv2_img)",
-        "cv2_trans_ops": "transforms.ColorJitter(brightness=[0.01,0.05])(pil_img)",
     },
     "ColorJitter_contrast": {
         "pil_ops": "transforms.ColorJitter(contrast=[0.3,0.6])(pil_img)",
         "cv2_ops": "transforms.ColorJitter(contrast=[0.3,0.6])(cv2_img)",
-        "cv2_trans_ops": "transforms.ColorJitter(contrast=[0.3,0.6])(pil_img)",
     },
     "ColorJitter_saturation": {
         "pil_ops": "transforms.ColorJitter(saturation=0.5)(pil_img)",
         "cv2_ops": "transforms.ColorJitter(saturation=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.ColorJitter(saturation=0.5)(pil_img)",
     },
     "ColorJitter_hue": {
         "pil_ops": "transforms.ColorJitter(hue=0.5)(pil_img)",
         "cv2_ops": "transforms.ColorJitter(hue=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.ColorJitter(hue=0.5)(pil_img)",
     },
     "RandomRotation": {
         "pil_ops": "transforms.RandomRotation(45)(pil_img)",
         "cv2_ops": "transforms.RandomRotation(45)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomRotation(45)(pil_img)",
     },
     "RandomAffine": {
         "pil_ops": "transforms.RandomAffine(degrees=(10,150))(pil_img)",
         "cv2_ops": "transforms.RandomAffine(degrees=(10,150))(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomAffine(degrees=(10,150))(pil_img)",
     },
     "Grayscale": {
         "pil_ops": "transforms.Grayscale(3)(pil_img)",
         "cv2_ops": "transforms.Grayscale(3)(cv2_img)",
-        "cv2_trans_ops": "transforms.Grayscale(3)(pil_img)",
     },
     "RandomGrayscale": {
         "pil_ops": "transforms.RandomGrayscale(p=0.8)(pil_img)",
         "cv2_ops": "transforms.RandomGrayscale(p=0.8)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomGrayscale(p=0.8)(pil_img)",
     },
     "RandomPerspective": {
         "pil_ops": "transforms.RandomPerspective(distortion_scale=0.5, p=0.5)(pil_img)",
         "cv2_ops": "transforms.RandomPerspective(distortion_scale=0.5, p=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomPerspective(distortion_scale=0.5, p=0.5)(pil_img)",
     },
     "GaussianBlur": {
         "pil_ops": "transforms.GaussianBlur(11,100)(pil_img)",
         "cv2_ops": "transforms.GaussianBlur(11,100)(cv2_img)",
-        "cv2_trans_ops": "transforms.GaussianBlur(11,100)(pil_img)",
     },
     "RandomInvert": {
         "pil_ops": "transforms.RandomInvert(p=0.5)(pil_img)",
         "cv2_ops": "transforms.RandomInvert(p=0.5)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomInvert(p=0.5)(pil_img)",
     },
     "RandomPosterize": {
         "pil_ops": "transforms.RandomPosterize(5)(pil_img)",
         "cv2_ops": "transforms.RandomPosterize(5)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomPosterize(5)(pil_img)",
     },
     "RandomSolarize": {
         "pil_ops": "transforms.RandomSolarize(100)(pil_img)",
         "cv2_ops": "transforms.RandomSolarize(100)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomSolarize(100)(pil_img)",
     },
     "RandomAdjustSharpness": {
         "pil_ops": "transforms.RandomAdjustSharpness(2)(pil_img)",
         "cv2_ops": "transforms.RandomAdjustSharpness(2)(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomAdjustSharpness(2)(pil_img)",
     },
     "RandomAutocontrast": {
         "pil_ops": "transforms.RandomAutocontrast()(pil_img)",
         "cv2_ops": "transforms.RandomAutocontrast()(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomAutocontrast()(pil_img)",
     },
     "RandomEqualize": {
         "pil_ops": "transforms.RandomEqualize()(pil_img)",
         "cv2_ops": "transforms.RandomEqualize()(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomEqualize()(pil_img)",
     },
     "Compose": {
         "pil_ops": "transforms.Compose([transforms.ToTensor(),"
                    "transforms.Normalize( [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(pil_img)",
         "cv2_ops": "transforms.Compose([transforms.ToTensor(),"
                    "transforms.Normalize( [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(cv2_img)",
-        "cv2_trans_ops": "transforms.Compose([transforms.ToTensor(),"
-                         "transforms.Normalize( [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(pil_img)",
     },
     "RandomApply": {
         "pil_ops": "transforms.RandomApply([transforms.Resize((224,224)), transforms.RandomAutocontrast()])(pil_img)",
         "cv2_ops": "transforms.RandomApply([transforms.Resize((224,224)), transforms.RandomAutocontrast()])(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomApply([transforms.Resize((224,224)), transforms.RandomAutocontrast()])"
-                         "(pil_img)",
     },
     "RandomChoice": {
         "pil_ops": "transforms.RandomChoice([transforms.Resize((224,224)), transforms.Grayscale(3)])(pil_img)",
         "cv2_ops": "transforms.RandomChoice([transforms.Resize((224,224)), transforms.Grayscale(3)])(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomChoice([transforms.Resize((224,224)), transforms.Grayscale(3)])(pil_img)",
     },
     "RandomOrder": {
         "pil_ops": "transforms.RandomOrder([transforms.Resize((224,224)), transforms.Grayscale(3)])(pil_img)",
         "cv2_ops": "transforms.RandomOrder([transforms.Resize((224,224)), transforms.Grayscale(3)])(cv2_img)",
-        "cv2_trans_ops": "transforms.RandomOrder([transforms.Resize((224,224)), transforms.Grayscale(3)])(pil_img)",
     },
 
 }
@@ -199,6 +165,7 @@ cv2_img = np.asarray(pil_img)
 
 
 def pil_ops_performance(pil_ops, loop):
+    torchvision_npu.set_image_backend("PIL")
     pil_handle = timeit.Timer(stmt=pil_ops, setup=import_module)
     pil_ops_spend = pil_handle.timeit(number=loop)
     return pil_ops_spend
@@ -211,38 +178,30 @@ def cv2_ops_performance(cv2_ops, loop):
     return cv2_ops_spend
 
 
-def cv2_with_trans_ops_performance(cv2_trans_ops, loop):
-    torchvision_npu.set_image_backend("cv2")
-    cv2_with_trans_handle = timeit.Timer(stmt=cv2_trans_ops, setup=import_module)
-    cv2_with_trans_ops_spend = cv2_with_trans_handle.timeit(number=loop)
-    return cv2_with_trans_ops_spend
-
-
-def get_performance(pil_ops: str, cv2_ops: str, cv2_trans_ops: str, loop: int = 1000):
+def get_performance(pil_ops: str, cv2_ops: str, loop: int = 1000):
     pil_ops_spend = pil_ops_performance(pil_ops, loop)
     cv2_ops_spend = cv2_ops_performance(cv2_ops, loop)
-    cv2_with_trans_ops_spend = cv2_with_trans_ops_performance(cv2_trans_ops, loop)
 
-    return pil_ops_spend, cv2_ops_spend, cv2_with_trans_ops_spend
+    return pil_ops_spend, cv2_ops_spend
 
 
 def compare_cv2_pil_ops():
-    performance_better_backend = {"pil": [], "cv2_with_trans": []}
+    performance_better_backend = {"pil": [], "cv2": []}
     for ops_name, sample in test_samples.items():
-        pil_ops_spend, cv2_ops_spend, cv2_with_trans_ops_spend = get_performance(**sample)
+        pil_ops_spend, cv2_ops_spend = get_performance(**sample)
 
-        print("ops: {} pil: {:.4f} cv2: {:.4f} cv2_with_trans: {:.4f}".format(
-            ops_name, pil_ops_spend, cv2_ops_spend, cv2_with_trans_ops_spend
+        print("ops: {} pil: {:.4f} cv2: {:.4f}".format(
+            ops_name, pil_ops_spend, cv2_ops_spend
         ))
 
-        if pil_ops_spend < cv2_with_trans_ops_spend:
+        if pil_ops_spend < cv2_ops_spend:
             performance_better_backend['pil'].append(ops_name)
         else:
-            performance_better_backend['cv2_with_trans'].append(ops_name)
+            performance_better_backend['cv2'].append(ops_name)
 
     print("-" * 50)
     print("performace better: pil {}, cv2_with_trans {}".format(performance_better_backend['pil'],
-                                                                performance_better_backend['cv2_with_trans']))
+                                                                performance_better_backend['cv2']))
 
 
 def pil_load():

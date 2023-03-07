@@ -18,6 +18,7 @@ import pytest
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -39,15 +40,16 @@ def test_random_apply(img_path, transforms, p):
     pil_img = Image.open(img_path)
 
     # using pil random appy
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_apply = trans.RandomApply(transforms=transforms, p=p)(pil_img)
 
-    # using cv2+convert random appy
-    import torchvision_npu
+    # using cv2 random appy
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_apply = trans.RandomApply(transforms=transforms, p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_apply = trans.RandomApply(transforms=transforms, p=p)(cv2_img)
 
-    assert type(pil_apply) == type(cv2_apply)
-    assert pil_apply.size == cv2_apply.size
-    assert image_similarity_vectors_via_cos(pil_apply, cv2_apply)
+    assert isinstance(pil_apply, Image.Image) and isinstance(cv2_apply, np.ndarray)
+    assert pil_apply.size == cv2_apply.shape[:2][::-1]
+    assert image_similarity_vectors_via_cos(pil_apply, Image.fromarray(cv2_apply))

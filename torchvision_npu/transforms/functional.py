@@ -83,6 +83,9 @@ def _get_image_size(img: Tensor) -> List[int]:
     """Returns image size as [w, h]
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2._get_image_size(img)
 
     if isinstance(img, torch.Tensor):
@@ -95,6 +98,9 @@ def _get_image_num_channels(img: Tensor) -> int:
     """Returns number of image channels
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2._get_image_num_channels(img)
 
     if isinstance(img, torch.Tensor):
@@ -141,18 +147,21 @@ def hflip(img: Tensor) -> Tensor:
     """Horizontally flip the given image.
 
     Args:
-        img (PIL Image or Tensor): Image to be flipped. If img
+        img (PIL Image or Tensor or numpy.ndarray): Image to be flipped. If img
             is a Tensor, it is expected to be in [..., H, W] format,
             where ... means it can have an arbitrary number of leading
             dimensions.
 
     Returns:
-        PIL Image or Tensor:  Horizontally flipped image.
+        PIL Image or Tensor or numpy.ndarray:  Horizontally flipped image.
     """
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(hflip)
 
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.hflip(img)
 
     if not isinstance(img, torch.Tensor):
@@ -180,7 +189,7 @@ def resized_crop(
     Notably used in :class:`~torchvision.transforms.RandomResizedCrop`.
 
     Args:
-        img (PIL Image or Tensor): Image to be cropped. (0,0) denotes the top left corner of the image.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be cropped. (0,0) denotes the top left corner of the image.
         top (int): Vertical component of the top left corner of the crop box.
         left (int): Horizontal component of the top left corner of the crop box.
         height (int): Height of the crop box.
@@ -198,7 +207,7 @@ def resized_crop(
             ``InterpolationMode.BILINEAR`` and ``InterpolationMode.BICUBIC`` modes.
             This can help making the output for PIL images and tensors closer.
     Returns:
-        PIL Image or Tensor: Cropped image.
+        PIL Image or Tensor or numpy.ndarray: Cropped image.
     """
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resized_crop)
@@ -227,13 +236,13 @@ def to_tensor(pic) -> Tensor:
 
 
 def pil_to_tensor(pic):
-    """Convert a ``PIL Image`` to a tensor of the same type.
+    """Convert a ``PIL Image`` or ``numpy.ndarray to a tensor of the same type.
     This function does not support torchscript.
 
     See :class:`~torchvision.transforms.PILToTensor` for more details.
 
     Args:
-        pic (PIL Image): Image to be converted to tensor.
+        pic (PIL Image or numpy.ndarray): Image to be converted to tensor.
 
     Returns:
         Tensor: Converted image.
@@ -267,15 +276,18 @@ def vflip(img: Tensor) -> Tensor:
     """Vertically flip the given image.
 
     Args:
-        img (PIL Image or Tensor): Image to be flipped. If img
+        img (PIL Image or Tensor or numpy.ndarray): Image to be flipped. If img
             is a Tensor, it is expected to be in [..., H, W] format,
             where ... means it can have an arbitrary number of leading
             dimensions.
 
     Returns:
-        PIL Image or Tensor:  Vertically flipped image.
+        PIL Image or Tensor or numpy.ndarray:  Vertically flipped image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.vflip(img)
 
     if not isinstance(img, torch.Tensor):
@@ -290,7 +302,7 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
 
     Args:
-        img (PIL Image or Tensor): Image to be resized.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be resized.
         size (sequence or int): Desired output size. If size is a sequence like
             (h, w), the output size will be matched to this. If size is an int,
             the smaller edge of the image will be matched to this number maintaining
@@ -304,7 +316,7 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
             For backward compatibility integer values (e.g. ``PIL.Image.NEAREST``) are still acceptable.
 
     Returns:
-        PIL Image or Tensor: Resized image.
+        PIL Image or Tensor or numpy.ndarray: Resized image.
     """
     # Backward compatibility with integer value
     if isinstance(interpolation, int):
@@ -314,8 +326,11 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
         )
         interpolation = torchvision.transforms.functional._interpolation_modes_from_int(interpolation)
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         if interpolation not in cv2_interpolation_mapping:
-            warnings.warn("Opencv does not support box and hamming interpolation and will use the pillow function")
+            raise TypeError("Opencv does not support box and hamming interpolation")
         else:
             cv2_interpolation = cv2_interpolation_mapping[interpolation]
             return F_cv2.resize(img, size=size, interpolation=cv2_interpolation)
@@ -336,17 +351,20 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
 
     Args:
-        img (PIL Image or Tensor): Image to be cropped. (0,0) denotes the top left corner of the image.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be cropped. (0,0) denotes the top left corner of the image.
         top (int): Vertical component of the top left corner of the crop box.
         left (int): Horizontal component of the top left corner of the crop box.
         height (int): Height of the crop box.
         width (int): Width of the crop box.
 
     Returns:
-        PIL Image or Tensor: Cropped image.
+        PIL Image or Tensor or numpy.ndarray: Cropped image.
     """
 
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.crop(img, top, left, height, width)
 
     if not isinstance(img, torch.Tensor):
@@ -362,12 +380,12 @@ def center_crop(img: Tensor, output_size: List[int]) -> Tensor:
     If image size is smaller than output size along any edge, image is padded with 0 and then center cropped.
 
     Args:
-        img (PIL Image or Tensor): Image to be cropped.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be cropped.
         output_size (sequence or int): (height, width) of the crop box. If int or sequence with single int,
             it is used for both directions.
 
     Returns:
-        PIL Image or Tensor: Cropped image.
+        PIL Image or Tensor or numpy.ndarray: Cropped image.
     """
     if isinstance(output_size, numbers.Number):
         output_size = (int(output_size), int(output_size))
@@ -402,7 +420,7 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
     and an arbitrary number of leading dimensions for mode constant
 
     Args:
-        img (PIL Image or Tensor): Image to be padded.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be padded.
         padding (int or sequence): Padding on each border. If a single int is provided this
             is used to pad all borders. If sequence of length 2 is provided this is the padding
             on left/right and top/bottom respectively. If a sequence of length 4 is provided
@@ -431,10 +449,13 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
                          will result in [2, 1, 1, 2, 3, 4, 4, 3]
 
     Returns:
-        PIL Image or Tensor: Padded image.
+        PIL Image or Tensor or numpy.ndarray: Padded image.
     """
 
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
     if not isinstance(img, torch.Tensor):
@@ -453,7 +474,7 @@ def rotate(
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
 
     Args:
-        img (PIL Image or Tensor): image to be rotated.
+        img (PIL Image or Tensor or numpy.ndarray): image to be rotated.
         angle (number): rotation angle value in degrees, counter-clockwise.
         interpolation (InterpolationMode): Desired interpolation enum defined by
             :class:`torchvision.transforms.InterpolationMode`. Default is ``InterpolationMode.NEAREST``.
@@ -472,7 +493,7 @@ def rotate(
             If input is PIL Image, the options is only available for ``Pillow>=5.2.0``.
 
     Returns:
-        PIL Image or Tensor: Rotated image.
+        PIL Image or Tensor or numpy.ndarray: Rotated image.
 
     .. _filters: https://pillow.readthedocs.io/en/latest/handbook/concepts.html#filters
 
@@ -501,8 +522,11 @@ def rotate(
         raise TypeError("Argument interpolation should be a InterpolationMode")
 
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         if interpolation not in cv2_interpolation_mapping:
-            warnings.warn("Opencv does not support box and hamming interpolation and will use the pillow function")
+            raise TypeError("Opencv does not support box and hamming interpolation")
         else:
             cv2_interpolation = cv2_interpolation_mapping[interpolation]
             return F_cv2.rotate(img, angle=angle, interpolation=cv2_interpolation, expand=expand, center=center,
@@ -534,7 +558,7 @@ def affine(
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
 
     Args:
-        img (PIL Image or Tensor): image to transform.
+        img (PIL Image or Tensor or numpy.ndarray): image to transform.
         angle (number): rotation angle in degrees between -180 and 180, clockwise direction.
         translate (sequence of integers): horizontal and vertical translations (post-rotation translation)
         scale (float): overall scale
@@ -556,7 +580,7 @@ def affine(
             Please use the ``interpolation`` parameter instead.
 
     Returns:
-        PIL Image or Tensor: Transformed image.
+        PIL Image or Tensor or numpy.ndarray: Transformed image.
     """
     if resample is not None:
         warnings.warn(
@@ -615,12 +639,19 @@ def affine(
         raise ValueError("Shear should be a sequence containing two values. Got {}".format(shear))
 
     img_size = _get_image_size(img)
-    # cv2 affine matrix get different should be pil
-    if torchvision.get_image_backend() == 'cv2' and isinstance(img, np.ndarray):
-        img = Image.fromarray(img)
+    # cv2 affine matrix get different
+    if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+        if interpolation not in cv2_interpolation_mapping:
+            raise TypeError("Opencv does not support box and hamming interpolation")
+        cv2_interpolation = cv2_interpolation_mapping[interpolation]
+        center = [img_size[0] * 0.5, img_size[1] * 0.5]
+        M = torchvision.transforms.functional._get_inverse_affine_matrix(center, -angle, translate, scale, shear)
+        return F_cv2.affine(img, matrix=np.array(M).reshape(2, 3), interpolation=cv2_interpolation, fill=fill)
 
     if not isinstance(img, torch.Tensor):
-        # center = (img_size[0] * 0.5 + 0.5, img_size[1] * 0.5 + 0.5)
         # it is visually better to estimate the center without 0.5 offset
         # otherwise image rotated by 90 degrees is shifted vs output image of torch.rot90 or F_t.affine
 
@@ -638,15 +669,18 @@ def invert(img: Tensor) -> Tensor:
     """Invert the colors of an RGB/grayscale image.
 
     Args:
-        img (PIL Image or Tensor): Image to have its colors inverted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to have its colors inverted.
             If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
             where ... means it can have an arbitrary number of leading dimensions.
             If img is PIL Image, it is expected to be in mode "L" or "RGB".
 
     Returns:
-        PIL Image or Tensor: Color inverted image.
+        PIL Image or Tensor or numpy.ndarray: Color inverted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.invert(img)
 
     if not isinstance(img, torch.Tensor):
@@ -667,7 +701,7 @@ def perspective(
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
 
     Args:
-        img (PIL Image or Tensor): Image to be transformed.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be transformed.
         startpoints (list of list of ints): List containing four lists of two integers corresponding to four corners
             ``[top-left, top-right, bottom-right, bottom-left]`` of the original image.
         endpoints (list of list of ints): List containing four lists of two integers corresponding to four corners
@@ -683,7 +717,7 @@ def perspective(
             If input is PIL Image, the options is only available for ``Pillow>=5.0.0``.
 
     Returns:
-        PIL Image or Tensor: transformed Image.
+        PIL Image or Tensor or numpy.ndarray: transformed Image.
     """
 
     coeffs = torchvision.transforms.functional._get_perspective_coeffs(startpoints, endpoints)
@@ -699,9 +733,16 @@ def perspective(
     if not isinstance(interpolation, InterpolationMode):
         raise TypeError("Argument interpolation should be a InterpolationMode")
 
-    # perspective matrix get different should be pil
-    if torchvision.get_image_backend() == 'cv2' and isinstance(img, np.ndarray):
-        img = Image.fromarray(img)
+    # cv2 perspective matrix get different
+    if torchvision.get_image_backend() == 'cv2':
+        if interpolation not in cv2_interpolation_mapping:
+            raise TypeError("Opencv does not support box and hamming interpolation")
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+        cv2_interpolation = cv2_interpolation_mapping[interpolation]
+        coeffs = cv2.getPerspectiveTransform(np.float32(startpoints), np.float32(endpoints))
+        return F_cv2.perspective(img, coeffs, interpolation=cv2_interpolation, fill=fill)
 
     if not isinstance(img, torch.Tensor):
         pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
@@ -714,7 +755,7 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     """Adjust brightness of an image.
 
     Args:
-        img (PIL Image or Tensor): Image to be adjusted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.
         If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
         where ... means it can have an arbitrary number of leading dimensions.
         brightness_factor (float):  How much to adjust the brightness. Can be
@@ -722,9 +763,12 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
             original image while 2 increases the brightness by a factor of 2.
 
     Returns:
-        PIL Image or Tensor: Brightness adjusted image.
+        PIL Image or Tensor or numpy.ndarray: Brightness adjusted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.adjust_brightness(img, brightness_factor)
 
     if not isinstance(img, torch.Tensor):
@@ -737,7 +781,7 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     """Adjust contrast of an image.
 
     Args:
-        img (PIL Image or Tensor): Image to be adjusted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.
         If img is torch Tensor, it is expected to be in [..., 3, H, W] format,
         where ... means it can have an arbitrary number of leading dimensions.
         contrast_factor (float): How much to adjust the contrast. Can be any
@@ -745,9 +789,12 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
             original image while 2 increases the contrast by a factor of 2.
 
     Returns:
-        PIL Image or Tensor: Contrast adjusted image.
+        PIL Image or Tensor or numpy.ndarray: Contrast adjusted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.adjust_contrast(img, contrast_factor)
 
     if not isinstance(img, torch.Tensor):
@@ -760,7 +807,7 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
     """Adjust color saturation of an image.
 
     Args:
-        img (PIL Image or Tensor): Image to be adjusted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.
         If img is torch Tensor, it is expected to be in [..., 3, H, W] format,
         where ... means it can have an arbitrary number of leading dimensions.
         saturation_factor (float):  How much to adjust the saturation. 0 will
@@ -768,9 +815,12 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
             2 will enhance the saturation by a factor of 2.
 
     Returns:
-        PIL Image or Tensor: Saturation adjusted image.
+        PIL Image or Tensor or numpy.ndarray: Saturation adjusted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.adjust_saturation(img, saturation_factor)
 
     if not isinstance(img, torch.Tensor):
@@ -794,7 +844,7 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     .. _Hue: https://en.wikipedia.org/wiki/Hue
 
     Args:
-        img (PIL Image or Tensor): Image to be adjusted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.
         If img is torch Tensor, it is expected to be in [..., 3, H, W] format,
         where ... means it can have an arbitrary number of leading dimensions.
         If img is PIL Image mode "1", "L", "I", "F" and modes with transparency (alpha channel) are not supported.
@@ -805,9 +855,12 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
             with complementary colors while 0 gives the original image.
 
     Returns:
-        PIL Image or Tensor: Hue adjusted image.
+        PIL Image or Tensor or numpy.ndarray: Hue adjusted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.adjust_hue(img, hue_factor)
 
     if not isinstance(img, torch.Tensor):
@@ -820,19 +873,22 @@ def posterize(img: Tensor, bits: int) -> Tensor:
     """Posterize an image by reducing the number of bits for each color channel.
 
     Args:
-        img (PIL Image or Tensor): Image to have its colors posterized.
+        img (PIL Image or Tensor or numpy.ndarray): Image to have its colors posterized.
             If img is torch Tensor, it should be of type torch.uint8 and
             it is expected to be in [..., 1 or 3, H, W] format, where ... means
             it can have an arbitrary number of leading dimensions.
             If img is PIL Image, it is expected to be in mode "L" or "RGB".
         bits (int): The number of bits to keep for each channel (0-8).
     Returns:
-        PIL Image or Tensor: Posterized image.
+        PIL Image or Tensor or numpy.ndarray: Posterized image.
     """
     if not (0 <= bits <= 8):
         raise ValueError('The number if bits should be between 0 and 8. Got {}'.format(bits))
 
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.posterize(img, bits)
 
     if not isinstance(img, torch.Tensor):
@@ -845,15 +901,18 @@ def solarize(img: Tensor, threshold: float) -> Tensor:
     """Solarize an RGB/grayscale image by inverting all pixel values above a threshold.
 
     Args:
-        img (PIL Image or Tensor): Image to have its colors inverted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to have its colors inverted.
             If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
             where ... means it can have an arbitrary number of leading dimensions.
             If img is PIL Image, it is expected to be in mode "L" or "RGB".
         threshold (float): All pixels equal or above this value are inverted.
     Returns:
-        PIL Image or Tensor: Solarized image.
+        PIL Image or Tensor or numpy.ndarray: Solarized image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.solarize(img, threshold)
 
     if not isinstance(img, torch.Tensor):
@@ -866,7 +925,7 @@ def adjust_sharpness(img: Tensor, sharpness_factor: float) -> Tensor:
     """Adjust the sharpness of an image.
 
     Args:
-        img (PIL Image or Tensor): Image to be adjusted.
+        img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.
         If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
         where ... means it can have an arbitrary number of leading dimensions.
         sharpness_factor (float):  How much to adjust the sharpness. Can be
@@ -874,9 +933,12 @@ def adjust_sharpness(img: Tensor, sharpness_factor: float) -> Tensor:
             original image while 2 increases the sharpness by a factor of 2.
 
     Returns:
-        PIL Image or Tensor: Sharpness adjusted image.
+        PIL Image or Tensor or numpy.ndarray: Sharpness adjusted image.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.adjust_sharpness(img, sharpness_factor)
 
     if not isinstance(img, torch.Tensor):
@@ -891,15 +953,18 @@ def autocontrast(img: Tensor) -> Tensor:
     becomes white.
 
     Args:
-        img (PIL Image or Tensor): Image on which autocontrast is applied.
+        img (PIL Image or Tensor or numpy.ndarray): Image on which autocontrast is applied.
             If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
             where ... means it can have an arbitrary number of leading dimensions.
             If img is PIL Image, it is expected to be in mode "L" or "RGB".
 
     Returns:
-        PIL Image or Tensor: An image that was autocontrasted.
+        PIL Image or Tensor or numpy.ndarray: An image that was autocontrasted.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.autocontrast(img)
 
     if not isinstance(img, torch.Tensor):
@@ -914,15 +979,18 @@ def equalize(img: Tensor) -> Tensor:
     distribution of grayscale values in the output.
 
     Args:
-        img (PIL Image or Tensor): Image on which equalize is applied.
+        img (PIL Image or Tensor or numpy.ndarray): Image on which equalize is applied.
             If img is torch Tensor, it is expected to be in [..., 1 or 3, H, W] format,
             where ... means it can have an arbitrary number of leading dimensions.
             If img is PIL Image, it is expected to be in mode "P", "L" or "RGB".
 
     Returns:
-        PIL Image or Tensor: An image that was equalized.
+        PIL Image or Tensor or numpy.ndarray: An image that was equalized.
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.equalize(img)
 
     if not isinstance(img, torch.Tensor):
@@ -937,7 +1005,7 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
     to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
 
     Args:
-        img (PIL Image or Tensor): Image to be blurred
+        img (PIL Image or Tensor or numpy.ndarray): Image to be blurred
         kernel_size (sequence of ints or int): Gaussian kernel size. Can be a sequence of integers
             like ``(kx, ky)`` or a single integer for square kernels.
             In torchscript mode kernel_size as single int is not supported, use a sequence of length 1: ``[ksize, ]``.
@@ -949,7 +1017,7 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
             not supported, use a sequence of length 1: ``[sigma, ]``.
 
     Returns:
-        PIL Image or Tensor: Gaussian Blurred version of the image.
+        PIL Image or Tensor or numpy.ndarray: Gaussian Blurred version of the image.
     """
     if not isinstance(kernel_size, (int, list, tuple)):
         raise TypeError('kernel_size should be int or a sequence of integers. Got {}'.format(type(kernel_size)))
@@ -978,7 +1046,10 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
 
     t_img = img
     # pil no gaussian_blur
-    if torchvision.get_image_backend() == 'cv2' and isinstance(t_img, np.ndarray):
+    if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.gaussian_blur(t_img, kernel_size, sigma)
 
     if not isinstance(img, torch.Tensor):
@@ -1004,16 +1075,19 @@ def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
         please, consider using meth:`~torchvision.transforms.functional.to_grayscale` with PIL Image.
 
     Args:
-        img (PIL Image or Tensor): RGB Image to be converted to grayscale.
+        img (PIL Image or Tensor or numpy.ndarray): RGB Image to be converted to grayscale.
         num_output_channels (int): number of channels of the output image. Value can be 1 or 3. Default, 1.
 
     Returns:
-        PIL Image or Tensor: Grayscale version of the image.
+        PIL Image or Tensor or numpy.ndarray: Grayscale version of the image.
             if num_output_channels = 1 : returned image is single channel
 
             if num_output_channels = 3 : returned image is 3 channel with r = g = b
     """
     if torchvision.get_image_backend() == 'cv2':
+        if not isinstance(img, np.ndarray):
+            raise TypeError(
+                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
         return F_cv2.to_grayscale(img, num_output_channels)
 
     if not isinstance(img, torch.Tensor):

@@ -18,7 +18,7 @@ import torch
 import torchvision.datasets
 from torchvision import transforms
 import time
-
+import torchvision_npu
 from PIL import Image
 
 IMAGENET_PATH = "./test/Data/"
@@ -29,13 +29,12 @@ IMAGE_RESIZE = 256
 
 
 class ImagenetHandle(object):
-    def __init__(self, imagenet_path, loader):
+    def __init__(self, imagenet_path):
         self.imagenet_path = imagenet_path
         self.img_size = IMAGE_SIZE
         self.epoch = EPOCH
         self.batch_size = BATCH_SIZE
         self.img_resize = IMAGE_RESIZE
-        self.loader = loader
 
     def imagenet_valid_dataset(self):
         transform = [
@@ -47,8 +46,7 @@ class ImagenetHandle(object):
                 std=[0.229, 0.224, 0.225],
             )
         ]
-        dataset = torchvision.datasets.ImageFolder(loader=self.loader, root=self.imagenet_path,
-                                                   transform=transforms.Compose(transform))
+        dataset = torchvision.datasets.ImageFolder(self.imagenet_path, transforms.Compose(transform))
         return dataset
 
     def imagenet_train_dataset(self):
@@ -61,8 +59,7 @@ class ImagenetHandle(object):
                 std=[0.229, 0.224, 0.225],
             )
         ]
-        dataset = torchvision.datasets.ImageFolder(loader=self.loader, root=self.imagenet_path,
-                                                   transform=transforms.Compose(transform))
+        dataset = torchvision.datasets.ImageFolder(self.imagenet_path, transforms.Compose(transform))
         return dataset
 
     def trans_dataset(self):
@@ -87,14 +84,11 @@ class ImagenetHandle(object):
 
 
 def test_cv2_accelerate():
-    pil_train_fps, pil_valid_fps = ImagenetHandle(IMAGENET_PATH,
-                                                  torchvision.datasets.folder.default_loader).trans_dataset()
-    import torchvision_npu
+    torchvision_npu.set_image_backend("PIL")
+    torch.manual_seed(10)
+    pil_train_fps, pil_valid_fps = ImagenetHandle(IMAGENET_PATH).trans_dataset()
+
     torchvision_npu.set_image_backend("cv2")
-    cv2_train_fps, cv2_valid_fps = ImagenetHandle(IMAGENET_PATH,
-                                                  torchvision.datasets.folder.default_loader).trans_dataset()
-    torchvision_npu.set_image_backend("cv2")
-    cv2_loader_train_fps, cv2_loader_valid_fps = ImagenetHandle(IMAGENET_PATH,
-                                                  torchvision_npu.datasets.folder.cv2_loader).trans_dataset()
-    assert pil_train_fps < cv2_loader_train_fps and cv2_train_fps < cv2_loader_train_fps
-    assert pil_valid_fps < cv2_loader_valid_fps and cv2_valid_fps < cv2_loader_valid_fps
+    torch.manual_seed(10)
+    cv2_train_fps, cv2_valid_fps = ImagenetHandle(IMAGENET_PATH).trans_dataset()
+    assert pil_train_fps < cv2_train_fps

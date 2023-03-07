@@ -17,6 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -33,15 +34,16 @@ def test_invert(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil equalize
+    torchvision_npu.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_invert = trans.RandomInvert(p=p)(pil_img)
 
     # using cv2+convert equalize
-    import torchvision_npu
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_invert = trans.RandomInvert(p=p)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_invert = trans.RandomInvert(p=p)(cv2_img)
 
-    assert type(pil_invert) == type(cv2_invert)
-    assert pil_invert.size == cv2_invert.size
-    assert (np.array(pil_invert) == np.array(cv2_invert)).all()
+    assert isinstance(pil_invert, Image.Image) and isinstance(cv2_invert, np.ndarray)
+    assert pil_invert.size == cv2_invert.shape[:2][::-1]
+    assert (np.array(pil_invert) == cv2_invert).all()

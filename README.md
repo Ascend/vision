@@ -96,6 +96,90 @@
     ...
     torchvision.ops.nms(boxes, scores, iou_threshold) # boxes 和 scores 为 NPU Tensor
    ```
+## 使用cv2图像处理后端
+
+1. Opencv-python版本推荐。推荐使用opencv-python=4.6.0。
+
+   ```python
+    pip3 install opencv-python==4.6.0.66
+   ```
+
+
+
+2. 脚本适配。
+
+   通过以下方式使能Opencv加速，在导入torchvision相关包前导入torchvision_npu包，在构造dataset前设置图像处理后端为cv2：
+
+   ```python
+   # 使能cv2图像处理后端
+   
+    ...
+    import torchvision
+    import torchvision_npu # 导入torchvision_npu包
+    import torchvision.datasets as datasets
+    ...
+    torchvision_npu.set_image_backend('cv2') # 设置图像处理后端为cv2
+    ...
+    train_dataset = torchvision.datasets.ImageFolder(...)
+    ...
+   ```
+
+   
+
+3. cv2算子适配原则。
+
+   - transforms方法实际调用pillow算子以及tensor算子，cv2算子调用接口与pillow算子调用接口保持一致。
+
+   - **cv2算子只支持numpy.ndarray作为入参，否则会直接抛出类型异常。**
+
+     ```python
+     TypeError(
+         "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+     ```
+
+   - **cv2算子不支持pillow算子的BOX、HAMMING插值方式，会直接抛类型异常。**
+
+     由于pillow算子共有6种插值方式分别是NEAREST、BILINEAR、BICUBIC、BOX、HAMMING、LANCZOS，但cv2算子支持5种插值方式NEAREST、LINEAR 、AREA、CUBIC、LANCZOS4，pillow算子的BOX、HAMMING插值方式存在无法映射cv2算子实现，此时使用cv2图像处理后端会直接抛出TypeError。
+
+     ```python
+     TypeError("Opencv does not support box and hamming interpolation")
+     ```
+
+   - cv2算子插值底层实现和pillow插值底层实现略有差异，存在图像处理结果差异，因此由插值方式导致的图像处理结果不一致情况为正常现象，通常两者结果以余弦相似度计算，结果近似在99%以内。
+
+
+4. cv2算子支持列表以及性能加速情况。
+   
+   单算子实验结果在arm架构的昇腾芯片910A上获得，单算子实验的cv2算子输入为np.ndarray，pillow算子输入为Image.Image。
+      
+     | ops               | 处理结果是否和pillow完全一致       | cv2单算子FPS | pillow单算子FPS | 加速比      |
+   |-------------------------| -------------------------------------- | ------------ | --------------- | ----------- |
+   | to_pil_image      | √（只接受tensor或np.ndarray） | -            | -               |             |
+   | pil_to_tensor     | √                       | 753          | **2244**        | -198%       |
+   | to_tensor         | √                       | **259**      | 240             | **7.9%**    |
+   | normalize         | √（只接受tensor输入）          | -            | -               |             |
+   | hflip             | √                       | **4629**     | 4230            | **9.43%**   |
+   | resized_crop      | 插值底层实现有差异               | **1096**     | 445             | **146.29%** |
+   | vflip             | √                       | **8795**     | 6587            | **33.52%**  |
+   | resize            | 插值底层实现有差异               | **1086**     | 504             | **115.48%** |
+   | crop              | √                       | **10928**    | 6743            | **62.06%**  |
+   | center_crop       | **√**                   | **19267**    | 9606            | **100.57%** |
+   | pad               | √                       | **3394**     | 1310            | **159.08%** |
+   | rotate            | 插值底层实现有差异               | **1597**     | 1346            | **18.65%**  |
+   | affine            | 插值底层实现差异，仿射矩阵获取也有差异     | **1604**     | 1287            | **24.64%**  |
+   | invert            | √                       | **8110**     | 2852            | **184.36%** |
+   | perspective       | 插值底层实现有差异               | **674**      | 288             | **134.03%** |
+   | adjust_brightness | √                       | **1174**     | 510             | **130.20%** |
+   | adjust_contrast   | √                       | **610**      | 326             | **87.12%**  |
+   | adjust_saturation | **√**                   | **603**      | 385             | **56.62%**  |
+   | adjust_hue        | 底层实现有差异                 | **278**      | 76              | **265.79%** |
+   | posterize         | √                       | **2604**     | 2356            | **10.53%**  |
+   | solarize          | √                       | **3109**     | 2710            | **14.72%**  |
+   | adjust_sharpness  | 底层实现有差异                 | **314**      | 293             | **7.17%**   |
+   | autocontrast      | √                       | **569**      | 540             | **5.37%**   |
+   | equalize          | 底层实现有差异                 | **764**      | 590             | **29.49%**  |
+   | gaussian_blur     | 底层实现有差异                 | **1190**     | 2               | **59400%**  |
+   | rgb_to_grayscale  | 底层实现有差异                 | **3404**     | 710             | **379.44%** |
 
 ## 使用DVPP图像处理后端
 
@@ -164,5 +248,4 @@
 | RandomResizedCrop    | crop_and_resize | √       |
 
 **Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**
-
 

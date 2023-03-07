@@ -17,6 +17,7 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -34,14 +35,15 @@ def test_pad(img_path, padding, fill, padding_mode):
     pil_img = Image.open(img_path)
 
     # using pil pad
+    torchvision_npu.set_image_backend("PIL")
     pil_pad = trans.Pad(padding=padding, fill=fill, padding_mode=padding_mode)(pil_img)
 
-    # using cv2+convert pad
-    import torchvision_npu
+    # using cv2 pad
     torchvision_npu.set_image_backend("cv2")
     torch.manual_seed(10)
-    cv2_pad = trans.Pad(padding=padding, fill=fill, padding_mode=padding_mode)(pil_img)
+    cv2_img = np.asarray(pil_img)
+    cv2_pad = trans.Pad(padding=padding, fill=fill, padding_mode=padding_mode)(cv2_img)
 
-    assert type(pil_pad) == type(cv2_pad)
-    assert pil_pad.size == cv2_pad.size
-    assert (np.array(pil_pad) == np.array(cv2_pad)).all()
+    assert isinstance(pil_pad, Image.Image) and isinstance(cv2_pad, np.ndarray)
+    assert pil_pad.size == cv2_pad.shape[:2][::-1]
+    assert (np.array(pil_pad) == cv2_pad).all()
