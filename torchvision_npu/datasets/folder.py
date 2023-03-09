@@ -72,21 +72,21 @@ class DatasetFolder(fold.DatasetFolder):
                                             is_valid_file=is_valid_file)
 
         self.accelerate_enable = False
-        self.device = torch.device("cpu")
+        self.device = "cpu"
 
         if torchvision.get_image_backend() == 'npu':
             if npu_rollback(self.transform):
                 return
             if torch_npu.npu.is_available():
                 self.accelerate_enable = True
-                self.device = torch_npu.npu.current_device()
+                self.device = "npu:{}".format(torch_npu.npu.current_device())
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         path, target = self.samples[index]
         sample = self.loader(path)
         if self.transform is not None:
             sample = self.transform(sample)
-            if sample.device.type == 'npu':
+            if isinstance(sample, torch.Tensor) and sample.device.type == 'npu':
                 sample = sample.cpu().squeeze(0)
         if self.target_transform is not None:
             target = self.target_transform(target)
@@ -104,7 +104,7 @@ class DatasetFolder(fold.DatasetFolder):
         if torchvision.get_image_backend() == 'npu' or force_npu:
             torchvision.set_image_backend('npu')
             self.accelerate_enable = True
-            self.device = torch_npu.npu.current_device() if npu == -1 else npu
+            self.device = "npu:{}".format(torch_npu.npu.current_device() if npu == -1 else npu)
         else:
             warnings.warn("Not Enable NPU")
 
