@@ -18,7 +18,7 @@
 - 需完成CANN开发或运行环境的安装，具体操作请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000002.html)》。
 - 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch 。
 - Python支持版本为3.7.5，PyTorch支持版本为1.11.0, Torchvision支持版本为0.12.0。
-- 需在NPU设备上基于Torchvision源码编译并安装版本为0.9.1的Torchvision wheel包。
+- 需在NPU设备上基于Torchvision源码编译并安装版本为0.12.0的Torchvision wheel包。
 
 
 ## 安装
