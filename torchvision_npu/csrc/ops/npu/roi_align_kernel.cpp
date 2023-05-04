@@ -36,7 +36,7 @@ void roi_align_forward_kernel_impl(
     bool aligned,
     const at::Tensor& rois,
     at::Tensor& output) {
-  int64_t roi_end_mode = aligned ? 1 : 0;
+  int64_t roi_end_mode = aligned ? 2 : 0;
 
   at_npu::native::OpCommand cmd;
   cmd.Name("ROIAlign")
