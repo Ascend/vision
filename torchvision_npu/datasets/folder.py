@@ -14,16 +14,19 @@
 
 import sys
 from typing import Any, Tuple, Callable, Optional
-import warnings
 
 import numpy as np
+from PIL import Image
+
 import torch
 import torch_npu
 import torchvision
-from PIL import Image
-
 from torchvision.datasets import folder as fold
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
+
+_npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomVerticalFlip",
+                   "RandomResizedCrop", "Resize", "CenterCrop", "FiveCrop", "TenCrop",
+                   "Pad", "ColorJitter", "GaussianBlur"]
 
 
 def add_datasets_folder():
@@ -32,14 +35,16 @@ def add_datasets_folder():
     torchvision.datasets.ImageFolder = ImageFolder
 
 
-_npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomResizedCrop"]
+def _assert_image_3d(img: torch.Tensor):
+    if img.ndim != 3:
+        raise ValueError('img is not 3D, got shape ({}).'.format(img.shape))
 
 
 def npu_rollback(transform) -> bool:
     def check_unsupported(t) -> bool:
         if t.__class__.__name__ not in _npu_accelerate:
-            warnings.warn("[{}] cannot accelerate. Roll back to native implementation."
-                          .format(t.__class__.__name__))
+            print("Warning: Cannot accelerate [{}]. Roll back to native PIL implementation."
+                .format(t.__class__.__name__), file=sys.stderr)
             torchvision.set_image_backend('PIL')
             return True
         return False
@@ -106,7 +111,7 @@ class DatasetFolder(fold.DatasetFolder):
             self.accelerate_enable = True
             self.device = "npu:{}".format(torch_npu.npu.current_device() if npu == -1 else npu)
         else:
-            warnings.warn("Not Enable NPU")
+            print("Warning: Not Enable NPU", file=sys.stderr)
 
 
 def cv2_loader(path: str) -> Any:
@@ -120,6 +125,7 @@ def npu_loader(path: str) -> Any:
     with open(path, "rb") as f:
         f.seek(0)
         prefix = f.read(16)
+        # DVPP only provides DecodeJpeg op currently
         if prefix[:3] == b"\xff\xd8\xff":
             f.seek(0)
             image_shape = extract_jpeg_shape(f)
@@ -137,10 +143,13 @@ def npu_loader(path: str) -> Any:
             channels = 3
 
             img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
+            _assert_image_3d(img)
             return img.unsqueeze(0)
-
+        # For other imgae types, use PIL to decode, then convert to npu tensor with NCHW format.
         else:
-            img = torch.from_numpy(np.array(fold.pil_loader(path))).permute((2, 0, 1)).contiguous()
+            img = torch.from_numpy(np.array(fold.pil_loader(path)))
+            _assert_image_3d(img)
+            img = img.permute((2, 0, 1)).contiguous()
             return img.unsqueeze(0).npu(non_blocking=True)
 
 

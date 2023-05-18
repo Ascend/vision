@@ -186,43 +186,50 @@
 1. 设置环境变量。
 
    ```
-    # **指的CANN包的安装目录，CANN-xx指的是版本。
-    source /**/CANN-xx/latest/bin/setenv.bash
+   # **指的CANN包的安装目录，CANN-xx指的是版本。
+   source /**/CANN-xx/latest/bin/setenv.bash
    ```
 
 2. 脚本适配。
 
    通过以下方式使能DVPP加速，在导入torchvision相关包前导入torchvision_npu包，在构造dataset前设置图像处理后端为npu：
    ```python
-    # 使能DVPP图像处理后端
-    ...
-    import torchvision
-    import torchvision_npu # 导入torchvision_npu包
-    import torchvision.datasets as datasets
-    ...
-    torchvision_npu.set_image_backend('npu') # 设置图像处理后端为npu
-    ...
-    train_dataset = torchvision.datasets.ImageFolder(...)
-    ...
+   # 使能DVPP图像处理后端
+   ...
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   import torchvision.datasets as datasets
+   ...
+   torchvision_npu.set_image_backend('npu') # 设置图像处理后端为npu
+   ...
+   train_dataset = torchvision.datasets.ImageFolder(...)
+   ...
    ```
 
-   如当前transforms方法中有DVPP不支持的，则回退至原生PIL实现。可通过set_accelerate_npu接口强制使能，此时，DVPP不支持的算子由AICPU执行：
+   数据预处理多进程场景下，worker进程默认运行在主进程设置的deive上（如无设置默认0）。
+   可通过set_accelerate_npu接口设置worker进程的device，例如：
    ``` python
-    # 强制使能DVPP图像处理后端
-    ...
-    train_dataset = torchvision.datasets.ImageFolder(...)
-    train_dataset.set_accelerate_npu(force_npu=True)
-    ...
+   # 设置worker进程的device_id
+   ...
+   train_dataset = torchvision.datasets.ImageFolder(...)
+   train_dataset.set_accelerate_npu(npu=1) # npu参数表示要设置的device_id
+   ...
    ```
 
-   数据预处理多进程场景下，worker进程默认运行在主进程设置的deive上（如无设置默认0）。可通过set_accelerate_npu接口设置worker进程的device，例如：
-   ``` python
-    # 设置worker进程的device_id
-    ...
-    train_dataset = torchvision.datasets.ImageFolder(...)
-    train_dataset.set_accelerate_npu(npu=1) # npu参数表示要设置的device_id
-    ...
+4. 执行单元测试脚本。
+
+   输出结果OK即为验证成功。
    ```
+   cd test/test_npu/
+   python -m unittest discover
+   ```
+
+3. 说明。
+   
+   transforms方法对外接口不变，只支持NCHW(N=1)格式的npu tensor作为入参，其他限制见表2。
+
+   物理机场景下，一个device上最多支持64个用户进程，即单p数据预处理进程数最多设置63。
+
 
 ## NPU算子支持列表
 
@@ -240,13 +247,25 @@
 
 **表 2**  DVPP支持列表
 
-| 方法                 | 算子            | 是否支持 |
-|----------------------|-----------------|---------|
-| npu_loader           | decode_jpeg     | √       |
-| ToTensor             | img_to_tensor   | √       | 
-| Normalize            | image_normalize | √       |
-| RandomHorizontalFlip | reverse         | √       |
-| RandomResizedCrop    | crop_and_resize | √       |
+| transforms           | functional       | DVPP ops           |    限制                   |
+|----------------------|------------------|--------------------|---------------------------|
+|                      | npu_loader       | DecodeJpeg         |                           |
+| ToTensor             | to_tensor        | ImgToTensor        |                           |
+| Normalize            | normalize        | NormalizeV2        |                           |
+| Resize               | resize           | Resize             |                           |
+| CenterCrop           | center_crop      | Crop               |                           |
+| FiveCrop             | five_crop        | Crop               |                           |
+| TenCrop              | ten_crop         | Crop               |                           |
+| Pad                  | pad              | PadV3D             | 不支持负数填充值            |
+| RandomHorizontalFlip | hflip            | ReverseV2          |                           |
+| RandomVerticalFlip   | vflip            | ReverseV2          |                           |
+| RandomResizedCrop    | resized_crop     | CropAndResizeV2    | 不支持BICUBIC插值模式       |
+| ColorJitter          | adjust_hue       | AdjustHue          |                           |
+| ColorJitter          | adjust_contrast  | AdjustContrast     |                           |
+| ColorJitter          | adjust_brightness| AdjustBrightnessV2 |                           |
+| ColorJitter          | adjust_saturation| AdjustSaturationV2 |                           |
+| GaussianBlur         | gaussian_blur    | GaussianBlur       | kernel_size只能选择1、3、5 |
+
 
 **Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**
 

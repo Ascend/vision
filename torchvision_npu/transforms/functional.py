@@ -14,19 +14,19 @@
 
 import numbers
 import warnings
+from typing import List, Tuple, Optional
+
+import numpy as np
 from PIL import Image
-from typing import List, Optional
+import cv2
 
 import torch
 from torch import Tensor
 import torchvision
-import torchvision.transforms.functional as F
-import numpy as np
-import cv2
-
-from torchvision.transforms import InterpolationMode
+from torchvision.transforms import functional as F
 from torchvision.transforms import functional_tensor as F_t
 from torchvision.transforms import functional_pil as F_pil
+from torchvision.transforms import InterpolationMode
 
 from ..utils import _log_api_usage_once
 from . import functional_npu as F_npu
@@ -51,6 +51,8 @@ def patch_transform_methods():
     torchvision.transforms.functional.resize = resize
     torchvision.transforms.functional.crop = crop
     torchvision.transforms.functional.center_crop = center_crop
+    torchvision.transforms.functional.five_crop = five_crop
+    torchvision.transforms.functional.ten_crop = ten_crop
     torchvision.transforms.functional.pad = pad
     torchvision.transforms.functional.rotate = rotate
     torchvision.transforms.functional.affine = affine
@@ -77,6 +79,12 @@ cv2_interpolation_mapping = {
     InterpolationMode.BICUBIC: cv2.INTER_CUBIC,
     InterpolationMode.LANCZOS: cv2.INTER_LANCZOS4,
 }
+
+
+def _assert_image_npu(img: torch.Tensor):
+    if img.ndim != 4:
+        raise ValueError(f"Using npu backend, image shoule be npu tensor whith NCHW format, \
+            but got {img.device.type} tensor with {img.ndim} dims.")
 
 
 def _get_image_size(img: Tensor) -> List[int]:
@@ -138,6 +146,7 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
                          '{}.'.format(tensor.size()))
 
     if tensor.device.type == 'npu':
+        _assert_image_npu(tensor)
         return F_npu.normalize(tensor, mean, std, inplace)
 
     return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
@@ -167,7 +176,8 @@ def hflip(img: Tensor) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.hflip(img)
 
-    if hasattr(img, 'device') and hasattr(img.device, 'type') and img.device.type == 'npu':
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
         return F_npu.hflip(img)
 
     return F_t.hflip(img)
@@ -212,6 +222,7 @@ def resized_crop(
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resized_crop)
     if isinstance(img, torch.Tensor) and img.device.type == 'npu':
+        _assert_image_npu(img)
         return F_npu.resized_crop(img, top, left, height, width, size, interpolation)
     img = crop(img, top, left, height, width)
     img = resize(img, size, interpolation)
@@ -230,7 +241,8 @@ def to_tensor(pic) -> Tensor:
     Returns:
         Tensor: Converted image.
     """
-    if isinstance(pic, torch.Tensor) and pic.device.type == 'npu' and pic.dtype == torch.uint8:
+    if isinstance(pic, torch.Tensor) and pic.dtype == torch.uint8 and pic.device.type == 'npu':
+        _assert_image_npu(pic)
         return F_npu.to_tensor(pic)
     return F.to_tensor_ori(pic)
 
@@ -293,6 +305,10 @@ def vflip(img: Tensor) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.vflip(img)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.vflip(img)
+
     return F_t.vflip(img)
 
 
@@ -342,6 +358,10 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
         pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
         return F_pil.resize(img, size=size, interpolation=pil_interpolation)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.resize(img, size=size, interpolation=interpolation.value)
+
     return F_t.resize(img, size=size, interpolation=interpolation.value)
 
 
@@ -369,6 +389,10 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.crop(img, top, left, height, width)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.crop(img, top, left, height, width)
 
     return F_t.crop(img, top, left, height, width)
 
@@ -410,6 +434,91 @@ def center_crop(img: Tensor, output_size: List[int]) -> Tensor:
     crop_top = int(round((image_height - crop_height) / 2.))
     crop_left = int(round((image_width - crop_width) / 2.))
     return crop(img, crop_top, crop_left, crop_height, crop_width)
+
+
+def five_crop(img: Tensor, size: List[int]) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    """Crop the given image into four corners and the central crop.
+    If the image is torch Tensor, it is expected
+    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
+
+    .. Note::
+        This transform returns a tuple of images and there may be a
+        mismatch in the number of inputs and targets your ``Dataset`` returns.
+
+    Args:
+        img (PIL Image or Tensor): Image to be cropped.
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made. If provided a sequence of length 1, it will be interpreted as (size[0], size[0]).
+
+    Returns:
+       tuple: tuple (tl, tr, bl, br, center)
+                Corresponding top left, top right, bottom left, bottom right and center crop.
+    """
+    if isinstance(size, numbers.Number):
+        size = (int(size), int(size))
+    elif isinstance(size, (tuple, list)) and len(size) == 1:
+        size = (size[0], size[0])
+
+    if len(size) != 2:
+        raise ValueError("Please provide only two dimensions (h, w) for size.")
+
+    image_width, image_height = _get_image_size(img)
+    crop_height, crop_width = size
+    if crop_width > image_width or crop_height > image_height:
+        msg = "Requested crop size {} is bigger than input size {}"
+        raise ValueError(msg.format(size, (image_height, image_width)))
+
+    tl = crop(img, 0, 0, crop_height, crop_width)
+    tr = crop(img, 0, image_width - crop_width, crop_height, crop_width)
+    bl = crop(img, image_height - crop_height, 0, crop_height, crop_width)
+    br = crop(img, image_height - crop_height, image_width - crop_width, crop_height, crop_width)
+
+    center = center_crop(img, [crop_height, crop_width])
+
+    return tl, tr, bl, br, center
+
+
+def ten_crop(img: Tensor, size: List[int], vertical_flip: bool = False) -> List[Tensor]:
+    """Generate ten cropped images from the given image.
+    Crop the given image into four corners and the central crop plus the
+    flipped version of these (horizontal flipping is used by default).
+    If the image is torch Tensor, it is expected
+    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
+
+    .. Note::
+        This transform returns a tuple of images and there may be a
+        mismatch in the number of inputs and targets your ``Dataset`` returns.
+
+    Args:
+        img (PIL Image or Tensor): Image to be cropped.
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made. If provided a sequence of length 1, it will be interpreted as (size[0], size[0]).
+        vertical_flip (bool): Use vertical flipping instead of horizontal
+
+    Returns:
+        tuple: tuple (tl, tr, bl, br, center, tl_flip, tr_flip, bl_flip, br_flip, center_flip)
+            Corresponding top left, top right, bottom left, bottom right and
+            center crop and same for the flipped image.
+    """
+    if isinstance(size, numbers.Number):
+        size = (int(size), int(size))
+    elif isinstance(size, (tuple, list)) and len(size) == 1:
+        size = (size[0], size[0])
+
+    if len(size) != 2:
+        raise ValueError("Please provide only two dimensions (h, w) for size.")
+
+    first_five = five_crop(img, size)
+
+    if vertical_flip:
+        img = vflip(img)
+    else:
+        img = hflip(img)
+
+    second_five = five_crop(img, size)
+    return first_five + second_five
 
 
 def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "constant") -> Tensor:
@@ -460,6 +569,10 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
 
     if not isinstance(img, torch.Tensor):
         return F_pil.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
     return F_t.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
@@ -774,6 +887,10 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_brightness(img, brightness_factor)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.adjust_brightness(img, brightness_factor)
+
     return F_t.adjust_brightness(img, brightness_factor)
 
 
@@ -800,6 +917,10 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_contrast(img, contrast_factor)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.adjust_contrast(img, contrast_factor)
+
     return F_t.adjust_contrast(img, contrast_factor)
 
 
@@ -825,6 +946,10 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_saturation(img, saturation_factor)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.adjust_saturation(img, saturation_factor)
 
     return F_t.adjust_saturation(img, saturation_factor)
 
@@ -865,6 +990,10 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_hue(img, hue_factor)
+    
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu.adjust_hue(img, hue_factor)
 
     return F_t.adjust_hue(img, hue_factor)
 
@@ -1057,6 +1186,10 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
             raise TypeError('img should be PIL Image or Tensor. Got {}'.format(type(img)))
 
         t_img = to_tensor(img)
+
+    if t_img.device.type == 'npu':
+        _assert_image_npu(t_img)
+        return F_npu.gaussian_blur(t_img, kernel_size, sigma)
 
     output = F_t.gaussian_blur(t_img, kernel_size, sigma)
 
