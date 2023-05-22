@@ -28,7 +28,8 @@ def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, 'torchvision_npu', 'csrc')
 
-    main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp'))
+    main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp')) + \
+                glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp'))
 
     # sources = main_file + source_cpu
     sources = main_file

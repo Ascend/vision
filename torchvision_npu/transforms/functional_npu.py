@@ -103,7 +103,7 @@ def resize(img: Tensor, size: List[int], interpolation: str = "bilinear") -> Ten
     sizes = [size_h, size_w]
     mode = _interpolation_tv2npu.get(interpolation)
 
-    return torch_npu.npu_resize(img, size=sizes, mode=mode)
+    return torch.ops.torchvision.npu_resize(img, size=sizes, mode=mode)
 
 
 def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
@@ -111,7 +111,7 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
     axis = 2 # crop start from the 3th(Height) axis
     offsets = [top, left] # crop start point(the upper left corner) coordinate
 
-    return torch_npu.npu_crop(img, size=size, axis=axis, offsets=offsets)
+    return torch.ops.torchvision.npu_crop(img, size=size, axis=axis, offsets=offsets)
 
 
 def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "constant") -> Tensor:
@@ -153,21 +153,21 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
     if min(p) < 0:
         raise ValueError("pad value ({}) is not non-negative.".format(min(p)))
 
-    return torch_npu.npu_pad2d(img, pad=p, constant_values=fill, mode=padding_mode)
+    return torch.ops.torchvision.npu_pad2d(img, pad=p, constant_values=fill, mode=padding_mode)
 
 
 def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     if brightness_factor < 0:
         raise ValueError('brightness_factor ({}) is not non-negative.'.format(brightness_factor))
 
-    return torch_npu.npu_adjust_brightness(img, factor=brightness_factor)
+    return torch.ops.torchvision.npu_adjust_brightness(img, factor=brightness_factor)
 
 
 def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     if contrast_factor < 0:
         raise ValueError('contrast_factor ({}) is not non-negative.'.format(contrast_factor))
 
-    return torch_npu.npu_adjust_contrast(img, factor=contrast_factor)
+    return torch.ops.torchvision.npu_adjust_contrast(img, factor=contrast_factor)
 
 
 def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
@@ -178,14 +178,14 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     if image_num_channels == 1: # Match PIL behaviour
         return img
 
-    return torch_npu.npu_adjust_hue(img, factor=hue_factor)
+    return torch.ops.torchvision.npu_adjust_hue(img, factor=hue_factor)
 
 
 def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
     if saturation_factor < 0:
         raise ValueError('saturation_factor ({}) is not non-negative.'.format(saturation_factor))
 
-    return torch_npu.npu_adjust_saturation(img, factor=saturation_factor)
+    return torch.ops.torchvision.npu_adjust_saturation(img, factor=saturation_factor)
 
 
 def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: List[float]) -> Tensor:
@@ -193,4 +193,4 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: List[float]) -> Te
         raise ValueError("sigma value must be in range {}.".format(_gb_kernel_size))
 
     # reflect mode is closer to the native implementation
-    return torch_npu.npu_gaussian_blur(img, kernel_size=kernel_size, sigma=sigma, padding_mode="reflect")
+    return torch.ops.torchvision.npu_gaussian_blur(img, kernel_size=kernel_size, sigma=sigma, padding_mode="reflect")
