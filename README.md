@@ -48,7 +48,7 @@
 
    ```
     # 下载master分支代码，进入插件根目录
-    git clone -b v0.12.0-dev https://gitee.com/ascend/vision.git vision_npu
+    git clone -b v0.12.0 https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
     # 安装依赖库
     pip3 install -r requirement.txt
