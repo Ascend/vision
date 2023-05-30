@@ -11,8 +11,8 @@ at::Tensor npu_crop(
     at::IntArrayRef offsets,
     int64_t axis) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_crop", "")
-                       .typed<decltype(npu_crop)>();
+      .findSchemaOrThrow("torchvision::npu_crop", "")
+      .typed<decltype(npu_crop)>();
   return op.call(self, size, offsets, axis);
 }
 

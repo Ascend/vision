@@ -1,9 +1,11 @@
 import numpy as np
+
 import torch
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision
 import torchvision_npu
+
+from torch_npu.testing.testcase import TestCase, run_tests
 
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 

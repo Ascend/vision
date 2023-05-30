@@ -13,8 +13,8 @@ at::Tensor npu_resize(
     std::string mode,
     std::string nearest_mode) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_resize", "")
-                       .typed<decltype(npu_resize)>();
+      .findSchemaOrThrow("torchvision::npu_resize", "")
+      .typed<decltype(npu_resize)>();
   return op.call(self, size, cubic_coeff_a, exclude_outside, mode, nearest_mode);
 }
 

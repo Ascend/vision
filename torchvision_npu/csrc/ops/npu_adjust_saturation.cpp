@@ -9,8 +9,8 @@ at::Tensor npu_adjust_saturation(
     const at::Tensor &self,
     at::Scalar factor) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_adjust_saturation", "")
-                       .typed<decltype(npu_adjust_saturation)>();
+      .findSchemaOrThrow("torchvision::npu_adjust_saturation", "")
+      .typed<decltype(npu_adjust_saturation)>();
   return op.call(self, factor);
 }
 

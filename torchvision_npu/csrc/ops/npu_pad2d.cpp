@@ -11,8 +11,8 @@ at::Tensor npu_pad2d(
     int64_t constant_values,
     std::string mode) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_pad2d", "")
-                       .typed<decltype(npu_pad2d)>();
+      .findSchemaOrThrow("torchvision::npu_pad2d", "")
+      .typed<decltype(npu_pad2d)>();
   return op.call(self, pad, constant_values, mode);
 }
 

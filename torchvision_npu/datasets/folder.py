@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys
+from struct import pack
 from typing import Any, Tuple, Callable, Optional
 
 import numpy as np
@@ -22,7 +23,7 @@ import torch
 import torch_npu
 import torchvision
 from torchvision.datasets import folder as fold
-from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
+from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape
 
 _npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomVerticalFlip",
                    "RandomResizedCrop", "Resize", "CenterCrop", "FiveCrop", "TenCrop",
@@ -142,7 +143,8 @@ def npu_loader(path: str) -> Any:
             uint8_tensor = torch.tensor(arr).npu(non_blocking=True)
             channels = 3
 
-            img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
+            img = torch.ops.torchvision.npu_decode_jpeg(
+                uint8_tensor, image_shape=image_shape, channels=channels)
             _assert_image_3d(img)
             return img.unsqueeze(0)
         # For other imgae types, use PIL to decode, then convert to npu tensor with NCHW format.

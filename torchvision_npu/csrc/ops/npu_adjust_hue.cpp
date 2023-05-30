@@ -9,8 +9,8 @@ at::Tensor npu_adjust_hue(
     const at::Tensor &self,
     at::Scalar factor) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_adjust_hue", "")
-                       .typed<decltype(npu_adjust_hue)>();
+      .findSchemaOrThrow("torchvision::npu_adjust_hue", "")
+      .typed<decltype(npu_adjust_hue)>();
   return op.call(self, factor);
 }
 

@@ -6,23 +6,16 @@ import cv2
 
 import torch
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision_npu
 import torchvision.transforms as transforms
+
+from torchvision_npu.testing.test_deviation_case import TestCase
+from torch_npu.testing.testcase import run_tests
 
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 
 
 class TestResize(TestCase):
-    def result_error(self, npu_img, cpu_img):
-        if npu_img.shape != cpu_img.shape:
-            self.fail("shape error")
-        if npu_img.dtype != cpu_img.dtype:
-            self.fail("dtype error")
-        result = np.abs(npu_img.to(torch.int16) - cpu_img.to(torch.int16))
-        if result.max() > 2:
-            self.fail("result error")
-
     def test_resize_vision(self):
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder.npu_loader(path)
@@ -45,7 +38,7 @@ class TestResize(TestCase):
             npu_output = transforms.Resize(size, interpolation=interpolation_list[i][0])(npu_input)
             npu_output = npu_output.cpu().squeeze(0)
             if i == 2:
-                self.result_error(npu_output, cpu_output)
+                self.assert_acceptable_deviation(npu_output, cpu_output, 2)
             else:
                 self.assertEqual(npu_output, cpu_output)
 

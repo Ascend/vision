@@ -247,24 +247,24 @@
 
 **表 2**  DVPP支持列表
 
-| transforms           | functional       | DVPP ops           |    限制                   |
+| transforms           | functional       | ops                |    限制                   |
 |----------------------|------------------|--------------------|---------------------------|
-|                      | npu_loader       | DecodeJpeg         |                           |
-| ToTensor             | to_tensor        | ImgToTensor        |                           |
-| Normalize            | normalize        | NormalizeV2        |                           |
-| Resize               | resize           | Resize             |                           |
-| CenterCrop           | center_crop      | Crop               |                           |
-| FiveCrop             | five_crop        | Crop               |                           |
-| TenCrop              | ten_crop         | Crop               |                           |
-| Pad                  | pad              | PadV3D             | 不支持负数填充值            |
-| RandomHorizontalFlip | hflip            | ReverseV2          |                           |
-| RandomVerticalFlip   | vflip            | ReverseV2          |                           |
-| RandomResizedCrop    | resized_crop     | CropAndResizeV2    | 不支持BICUBIC插值模式       |
-| ColorJitter          | adjust_hue       | AdjustHue          |                           |
-| ColorJitter          | adjust_contrast  | AdjustContrast     |                           |
-| ColorJitter          | adjust_brightness| AdjustBrightnessV2 |                           |
-| ColorJitter          | adjust_saturation| AdjustSaturationV2 |                           |
-| GaussianBlur         | gaussian_blur    | GaussianBlur       | kernel_size只能选择1、3、5 |
+|                      | npu_loader       | npu_decode_jpeg    |                           |
+| ToTensor             | to_tensor        | npu_img_to_tensor  | 输入dtype只支持uint8     |
+| Normalize            | normalize        | npu_normalize      | 输入dtype只支持float16或float32 |
+| Resize               | resize           | npu_resize         |                           |
+| CenterCrop           | center_crop      | npu_crop           |                           |
+| FiveCrop             | five_crop        | npu_crop           |                           |
+| TenCrop              | ten_crop         | npu_crop           |                           |
+| Pad                  | pad              | npu_pad2d          | 填充值不支持负数           |
+| RandomHorizontalFlip | hflip            | npu_reverse        |                           |
+| RandomVerticalFlip   | vflip            | npu_reverse        |                           |
+| RandomResizedCrop    | resized_crop     | npu_crop_and_resize| 插值模式不支持BICUBIC      |
+| ColorJitter          | adjust_hue       | npu_adjust_hue     |                           |
+| ColorJitter          | adjust_contrast  | npu_adjust_contrast|                           |
+| ColorJitter          | adjust_brightness| npu_adjust_brightness | 输入dtype只支持uint8  |
+| ColorJitter          | adjust_saturation| npu_adjust_saturation | 输入dtype只支持uint8  |
+| GaussianBlur         | gaussian_blur    | npu_gaussian_blur     | kernel_size只支持1、3、5 |
 
 
 **Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**

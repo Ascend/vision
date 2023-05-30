@@ -28,16 +28,16 @@ _gb_kernel_size = [1, 3, 5]
 
 def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
     if not inplace:
-        return torch_npu.image_normalize(tensor, mean=mean, variance=std, dtype=0)
-    return torch_npu.image_normalize_(tensor, mean=mean, variance=std, dtype=0)
+        return torch.ops.torchvision.npu_normalize(tensor, mean=mean, variance=std, dtype=torch.float32)
+    return torch.ops.torchvision.npu_normalize_(tensor, mean=mean, variance=std, dtype=torch.float32)
 
 
 def vflip(img: Tensor) -> Tensor:
-    return torch_npu.reverse(img, axis=[2])
+    return torch.ops.torchvision.npu_reverse(img, axis=[2])
 
 
 def hflip(img: Tensor) -> Tensor:
-    return torch_npu.reverse(img, axis=[3])
+    return torch.ops.torchvision.npu_reverse(img, axis=[3])
 
 
 def resized_crop(
@@ -58,12 +58,12 @@ def resized_crop(
     boxes = np.minimum([i / (height - 1), j / (width - 1), (i + h) / (height - 1), (j + w) / (width - 1)], 1).tolist()
     box_index = [0]
     crop_size = size
-    return torch_npu.crop_and_resize(img,
+    return torch.ops.torchvision.npu_crop_and_resize(img,
         boxes=boxes, box_index=box_index, crop_size=crop_size, method=interpolation.value)
 
 
 def to_tensor(pic) -> Tensor:
-    return torch_npu.img_to_tensor(pic)
+    return torch.ops.torchvision.npu_img_to_tensor(pic)
 
 
 def resize(img: Tensor, size: List[int], interpolation: str = "bilinear") -> Tensor:

@@ -9,8 +9,8 @@ at::Tensor npu_adjust_brightness(
     const at::Tensor &self,
     at::Scalar factor) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_adjust_brightness", "")
-                       .typed<decltype(npu_adjust_brightness)>();
+      .findSchemaOrThrow("torchvision::npu_adjust_brightness", "")
+      .typed<decltype(npu_adjust_brightness)>();
   return op.call(self, factor);
 }
 

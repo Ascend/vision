@@ -11,8 +11,8 @@ at::Tensor npu_gaussian_blur(
     c10::optional<c10::ArrayRef<double>> sigma,
     std::string padding_mode) {
   static auto op = c10::Dispatcher::singleton()
-                       .findSchemaOrThrow("torchvision::npu_gaussian_blur", "")
-                       .typed<decltype(npu_gaussian_blur)>();
+      .findSchemaOrThrow("torchvision::npu_gaussian_blur", "")
+      .typed<decltype(npu_gaussian_blur)>();
   return op.call(self, kernel_size, sigma, padding_mode);
 }
 

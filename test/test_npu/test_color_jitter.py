@@ -2,23 +2,16 @@ import numpy as np
 
 import torch
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision_npu
 import torchvision.transforms as transforms
+
+from torchvision_npu.testing.test_deviation_case import TestCase
+from torch_npu.testing.testcase import run_tests
 
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 
 
 class TestColorJitter(TestCase):
-    def result_error(self, npu_img, cpu_img):
-        if npu_img.shape != cpu_img.shape:
-            self.fail("shape error")
-        if npu_img.dtype != cpu_img.dtype:
-            self.fail("dtype error")
-        result = np.abs(npu_img.to(torch.int16) - cpu_img.to(torch.int16))
-        if result.max() > 2:
-            self.fail("result error")
-
     def test_color_jitter(self):
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder.npu_loader(path)
@@ -34,7 +27,7 @@ class TestColorJitter(TestCase):
         factor = np.random.uniform(-0.5, 0.5)
         cpu_output = transforms.functional.adjust_hue(cpu_input, factor)
         npu_output = transforms.functional.adjust_hue(npu_input, factor).cpu().squeeze(0)
-        self.result_error(npu_output, cpu_output)
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
     def test_adjust_contrast(self):
         path = "../Data/dog/dog.0001.jpg"
@@ -52,7 +45,7 @@ class TestColorJitter(TestCase):
         factor = np.random.uniform(0, 100)
         cpu_output = transforms.functional.adjust_brightness(cpu_input, factor)
         npu_output = transforms.functional.adjust_brightness(npu_input, factor).cpu().squeeze(0)
-        self.result_error(npu_output, cpu_output)
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
     
     def test_adjust_saturation(self):
         path = "../Data/dog/dog.0001.jpg"
@@ -61,7 +54,7 @@ class TestColorJitter(TestCase):
         factor = np.random.uniform(0, 1)
         cpu_output = transforms.functional.adjust_saturation(cpu_input, factor)
         npu_output = transforms.functional.adjust_saturation(npu_input, factor).cpu().squeeze(0)
-        self.result_error(npu_output, cpu_output)
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
 
 if __name__ == '__main__':

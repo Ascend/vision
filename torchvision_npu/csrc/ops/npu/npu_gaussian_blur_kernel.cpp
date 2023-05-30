@@ -35,6 +35,9 @@ at::Tensor npu_gaussian_blur_kernel(
     at::IntArrayRef kernel_size,
     c10::optional<c10::ArrayRef<double>> sigma,
     std::string padding_mode) {
+  TORCH_CHECK(sigma.has_value(),
+      "Op[npu_gaussian_blur] argument[sigma] is mandatory");
+
   at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self);
 
   npu_gaussian_blur_kernel_impl(
