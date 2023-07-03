@@ -98,17 +98,14 @@ class DatasetFolder(fold.DatasetFolder):
             target = self.target_transform(target)
         return sample, target
 
-    def set_accelerate_npu(self, npu: int = -1, force_npu: bool = False) -> None:
+    def set_accelerate_npu(self, npu: int = -1) -> None:
         """
-        Set devive and forcibly enable NPU for data preprocecssing process.
+        Set devive for data preprocecssing process.
 
         Args:
             npu(int): Device id to set for DP worker process. -1 denotes using the device set by the main process.
-            force_npu(bool): When roll back to native implementation, set this True can forcibly enable NPU.
-                             In this case, operators that aren't supported by DVPP run on AICPU.
         """
-        if torchvision.get_image_backend() == 'npu' or force_npu:
-            torchvision.set_image_backend('npu')
+        if torchvision.get_image_backend() == 'npu':
             self.accelerate_enable = True
             self.device = "npu:{}".format(torch_npu.npu.current_device() if npu == -1 else npu)
         else:

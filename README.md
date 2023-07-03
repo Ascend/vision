@@ -200,7 +200,7 @@
    import torchvision_npu # 导入torchvision_npu包
    import torchvision.datasets as datasets
    ...
-   torchvision_npu.set_image_backend('npu') # 设置图像处理后端为npu
+   torchvision_npu.set_image_backend('npu') # 设置图像处理后端为npu，即使能DVPP加速
    ...
    train_dataset = torchvision.datasets.ImageFolder(...)
    ...
@@ -216,6 +216,50 @@
    ...
    ```
 
+   部分网络脚本的ImageFolder中不包括ToTensor，DataLoader中collate_fn使用自定义的fast_collate，进行数据从PIL.Image.Imgae对象到torch.Tensor的转换。此时，使用DVPP加速需要关闭fast_collate使用默认的defualt_collate。
+   ```python
+   ''' 用户脚本中自定义的collate函数 '''
+   def fast_collate(batch):
+      imgs = [img[0] for img in batch]
+      targets = torch.tensor([target[1] for target in batch], dtype=torch.int64)
+      w = imgs[0].size[0]
+      h = imgs[0].size[1]
+      tensor = torch.zeros((len(imgs), 3, h, w), dtype=torch.uint8)
+      for i, img in enumerate(imgs):
+         nump_array = np.asarray(img, dtype=np.uint8)
+         if nump_array.ndim < 3:
+               nump_array = np.expand_dims(nump_array, axis=-1)
+         # 如果此处没有进行nump_array从(H, W, C)到(C, H, W)的转换，那么转换会放在训练中
+         nump_array = np.rollaxis(nump_array, 2)
+         tensor[i] += torch.from_numpy(nump_array)
+
+      return tensor, targets
+   ...
+   train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+        num_workers=args.workers, pin_memory=True, sampler=train_sampler,
+        # collate_fn=fast_collate, drop_last=True)
+        drop_last=True) # 使用collate_fn的默认defualt_collate
+   ...
+         if 'npu' in args.device:
+               # images = images.npu(non_blocking=True).permute(0, 3, 1, 2).to(torch.float).sub(mean).div(std)
+               # 如果轴转换放在训练中，使用DVPP加速时需要去掉
+               images = images.npu(non_blocking=True).to(torch.float).sub(mean).div(std)
+               target = target.npu(non_blocking=True)
+   ...
+   ```
+
+   如果脚本中有多个dataset，希望一些dataset使用DVPP加速，一些使用原生处理，只需要在对应dataset构造前设置相应的处理后端，如：
+   ```python
+   ...
+   torchvision_npu.set_image_backend('npu') # 设置dataset1的图像处理后端为npu
+   dataset1 = torchvision.datasets.ImageFolder(...)
+   ...
+   torchvision_npu.set_image_backend('PIL') # 设置dataset2的图像处理后端为PIL
+   dataset2 = torchvision.datasets.ImageFolder(...)
+   ...
+   ```
+
 4. 执行单元测试脚本。
 
    输出结果OK即为验证成功。
@@ -225,8 +269,10 @@
    ```
 
 3. 说明。
+
+   只有通过torchvision.datasets.ImageFolder/DatasetFolder构造的dataset才可以使能DVPP加速。
    
-   transforms方法对外接口不变，只支持NCHW(N=1)格式的npu tensor作为入参，其他限制见表2。
+   torchvision.transforms方法对外接口不变，只支持NCHW(N=1)格式的npu tensor作为入参，其他限制见表2。
 
    物理机场景下，一个device上最多支持64个用户进程，即单p数据预处理进程数最多设置63。
 
@@ -247,24 +293,24 @@
 
 **表 2**  DVPP支持列表
 
-| transforms           | functional       | ops                |    限制                   |
-|----------------------|------------------|--------------------|---------------------------|
-|                      | npu_loader       | npu_decode_jpeg    |                           |
-| ToTensor             | to_tensor        | npu_img_to_tensor  | 输入dtype只支持uint8     |
-| Normalize            | normalize        | npu_normalize      | 输入dtype只支持float16或float32 |
-| Resize               | resize           | npu_resize         |                           |
-| CenterCrop           | center_crop      | npu_crop           |                           |
-| FiveCrop             | five_crop        | npu_crop           |                           |
-| TenCrop              | ten_crop         | npu_crop           |                           |
-| Pad                  | pad              | npu_pad2d          | 填充值不支持负数           |
-| RandomHorizontalFlip | hflip            | npu_reverse        |                           |
-| RandomVerticalFlip   | vflip            | npu_reverse        |                           |
-| RandomResizedCrop    | resized_crop     | npu_crop_and_resize| 插值模式不支持BICUBIC      |
-| ColorJitter          | adjust_hue       | npu_adjust_hue     |                           |
-| ColorJitter          | adjust_contrast  | npu_adjust_contrast|                           |
-| ColorJitter          | adjust_brightness| npu_adjust_brightness | 输入dtype只支持uint8  |
-| ColorJitter          | adjust_saturation| npu_adjust_saturation | 输入dtype只支持uint8  |
-| GaussianBlur         | gaussian_blur    | npu_gaussian_blur     | kernel_size只支持1、3、5 |
+| transforms           | functional       | 处理结果是否和pillow完全一致 |    限制                 |
+|----------------------|------------------|--------------------|------------------------------  |
+|                      | npu_loader       | √                        | 分辨率: 6x4~16384x16384   |
+| ToTensor             | to_tensor        | √                        | 分辨率: 6x4~4096x8192     |
+| Normalize            | normalize        | √                        | 分辨率: 6x4~4096x8192     |
+| Resize               | resize           | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768   |
+| CenterCrop           | center_crop      | √                        | 分辨率: 6x4~32768x32768   |
+| FiveCrop             | five_crop        | √                        | 分辨率: 6x4~32768x32768   |
+| TenCrop              | ten_crop         | √                        | 分辨率: 6x4~32768x32768   |
+| Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充值不支持负数 |
+| RandomHorizontalFlip | hflip            | √                        | 分辨率: 6x4~4096x8192     |
+| RandomVerticalFlip   | vflip            | √                        | 分辨率: 6x4~4096x8192     |
+| RandomResizedCrop    | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>插值模式不支持BICUBIC |
+| ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
+| ColorJitter          | adjust_contrast  | 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
+| ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
+| ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
+| GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
 
 
 **Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**

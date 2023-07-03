@@ -11,6 +11,8 @@ class TestCase(TestCase):
             self.fail("dtype error")
         if a.dtype == torch.uint8:
             result = np.abs(a.to(torch.int16) - b.to(torch.int16))
+        elif a.dtype == np.uint8:
+            result = np.abs(a.astype(np.int16) - b.astype(np.int16))
         else:
             result = np.abs(a - b)
         if result.max() > deviation:
