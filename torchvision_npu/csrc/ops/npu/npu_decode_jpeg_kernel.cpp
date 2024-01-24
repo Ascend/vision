@@ -8,13 +8,15 @@ namespace ops {
 
 namespace {
 
+const int SIZE = 8;
+
 constexpr int64_t ratio = 1;
 constexpr bool fancy_upscaling = true;
 constexpr float acceptable_fraction = 1.0;
 const std::string dct_method = "";
 const std::string dst_img_format = "CHW";
 
-c10::SmallVector<int64_t, at_npu::native::SIZE> npu_decode_jpeg_output_size(
+c10::SmallVector<int64_t, SIZE> npu_decode_jpeg_output_size(
     at::IntArrayRef image_shape,
     int64_t channels) {
   TORCH_CHECK(image_shape.size() == 3,
@@ -24,7 +26,7 @@ c10::SmallVector<int64_t, at_npu::native::SIZE> npu_decode_jpeg_output_size(
   int64_t W = image_shape[1];
   int64_t C = image_shape[2];
 
-  c10::SmallVector<int64_t, at_npu::native::SIZE> output_size;
+  c10::SmallVector<int64_t, SIZE> output_size;
   if (channels == 0) {
     output_size = {C, H, W};
   } else {
@@ -64,10 +66,7 @@ at::Tensor npu_decode_jpeg_kernel(
   auto output_size = npu_decode_jpeg_output_size(image_shape, channels);
 
   // construct the output tensor of the NPU
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensorWithFormat(
-      output_size,
-      self.options().dtype(at::kByte),
-      ACL_FORMAT_ND);
+  at::Tensor result = at::empty(output_size, self.options().dtype(at::kByte));
 
   // calculate the output result of the NPU
   npu_decode_jpeg_kernel_impl(

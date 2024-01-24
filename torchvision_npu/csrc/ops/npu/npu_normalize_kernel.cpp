@@ -39,12 +39,9 @@ at::Tensor npu_normalize_kernel(
     c10::optional<c10::ArrayRef<double>> mean,
     c10::optional<c10::ArrayRef<double>> variance,
     at::ScalarType dtype) {
-  auto output_size = at_npu::native::input_same_output_size(self);
+  auto output_size = self.sizes();
 
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(
-      output_size,
-      self.options().dtype(dtype),
-      self);
+  at::Tensor result = at::empty(output_size, self.options().dtype(dtype));
 
   npu_normalize_kernel_impl(self, mean, variance, dtype, result);
 
@@ -56,14 +53,10 @@ at::Tensor& npu_normalize_inplace_kernel(
     c10::optional<c10::ArrayRef<double>> mean,
     c10::optional<c10::ArrayRef<double>> variance,
     at::ScalarType dtype) {
-  if (!at_npu::native::NpuUtils::check_match(&self)) {
-    at::Tensor contiguous_self = at_npu::native::NpuUtils::format_contiguous(self);
-    at::Tensor result = npu_normalize_kernel_impl(contiguous_self, mean, variance, dtype, contiguous_self);
-    at_npu::native::NpuUtils::format_fresh_view(self, result);
-  } else {
-    npu_normalize_kernel_impl(self, mean, variance, dtype, self);
-  }
-
+  //The PytorchAdapter hides check_match interface. Temporarily replace with clone and copy_.
+  auto self_clone = self.clone();
+  self.copy_(self_clone);
+  npu_normalize_kernel_impl(self, mean, variance, dtype, self);
   return self;
 }
 

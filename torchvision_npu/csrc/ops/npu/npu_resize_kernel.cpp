@@ -8,6 +8,8 @@ namespace ops {
 
 namespace {
 
+const int N = 32;
+
 at::Tensor &npu_resize_kernel_impl(
     const at::Tensor &self,
     at::IntArrayRef size,
@@ -43,9 +45,9 @@ at::Tensor npu_resize_kernel(
   TORCH_CHECK(size.size() == 2,
       "Op[npu_resize] argument[size] should have 2 elements: (height, width).");
 
-  c10::SmallVector<int64_t, at_npu::native::N> output_size = {self.size(0), self.size(1), size[0], size[1]};
+  c10::SmallVector<int64_t, N> output_size = {self.size(0), self.size(1), size[0], size[1]};
   
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = at::empty(output_size, self.options());
 
   npu_resize_kernel_impl(
       self, size,

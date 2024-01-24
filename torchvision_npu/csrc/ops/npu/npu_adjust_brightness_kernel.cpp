@@ -25,7 +25,7 @@ at::Tensor &npu_adjust_brightness_kernel_impl(
 at::Tensor npu_adjust_brightness_kernel(
     const at::Tensor &self,
     at::Scalar factor) {
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self);
+  at::Tensor result = at::empty(self.sizes(), self.options());
 
   npu_adjust_brightness_kernel_impl(self, factor, result);
 

@@ -25,7 +25,7 @@ at::Tensor &npu_reverse_kernel_impl(
 at::Tensor npu_reverse_kernel(
     const at::Tensor &self,
     at::IntArrayRef axis) {
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self);
+  at::Tensor result = at::empty(self.sizes(), self.options());
 
   npu_reverse_kernel_impl(self, axis, result);
 
