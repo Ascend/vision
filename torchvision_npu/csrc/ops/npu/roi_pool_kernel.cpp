@@ -39,8 +39,7 @@ void roi_pool_forward_kernel_impl(
   int64_t pooled_height_64 = pooled_height;
   int64_t pooled_width_64 = pooled_width;
   int64_t pooled_channel = 1;
-  at::Tensor roi_actual_num = at_npu::native::OpPreparation::ApplyTensor(
-      {}, rois.options().dtype(at::kInt), rois);
+  at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
 
   at_npu::native::OpCommand cmd;
   cmd.Name("RoiPoolingWithArgMax")
@@ -75,8 +74,7 @@ void roi_pool_backward_kernel_impl(
   int64_t pooled_height_64 = pooled_height;
   int64_t pooled_width_64 = pooled_width;
   int64_t pooled_channel = 1;
-  at::Tensor roi_actual_num = at_npu::native::OpPreparation::ApplyTensor(
-      {}, rois.options().dtype(at::kInt), rois);
+  at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
 
   at_npu::native::OpCommand cmd;
   cmd.Name("RoiPoolingGradWithArgMax")

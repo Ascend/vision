@@ -22,26 +22,18 @@ namespace ops {
 
 namespace {
 
+const int SIZE = 8;
+
 template <typename scalar_t>
 at::Tensor nms_kernel_impl(
     const at::Tensor& boxes,
     const at::Tensor& scores,
     double iou_threshold) {
-
-    at::Tensor iou_threshold_y = at_npu::native::OpPreparation::ApplyTensor(
-                                   {}, boxes.options().dtype(at::kFloat), boxes)
-                                   .fill_(iou_threshold);
-    at::Tensor scores_threshold_y =
-      at_npu::native::OpPreparation::ApplyTensor(
-          {}, boxes.options().dtype(at::kFloat), boxes)
-          .fill_(0);
-    at::Tensor max_outputsize_y = at_npu::native::OpPreparation::ApplyTensor(
-                                    {}, boxes.options().dtype(at::kInt), boxes)
-                                    .fill_(boxes.size(0));
-    c10::SmallVector<int64_t, at_npu::native::SIZE> outputsize = {boxes.size(0)};
-    at::Tensor output = at_npu::native::OpPreparation::ApplyTensor(
-                          outputsize, boxes.options().dtype(at::kInt), boxes)
-                          .fill_(-1);
+    at::Tensor iou_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(iou_threshold);
+    at::Tensor scores_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(0);
+    at::Tensor max_outputsize_y = at::empty({}, boxes.options().dtype(at::kInt)).fill_(boxes.size(0));
+    c10::SmallVector<int64_t, SIZE> outputsize = {boxes.size(0)};
+    at::Tensor output = at::empty(outputsize, boxes.options().dtype(at::kInt)).fill_(-1);
     at_npu::native::OpCommand cmd;
     cmd.Name("NonMaxSuppressionV3")
       .Input(boxes)
@@ -55,8 +47,7 @@ at::Tensor nms_kernel_impl(
     auto outputsizeInt = outputsizeBool.to(at::ScalarType::Int);
     auto countLen = at::sum(outputsizeInt, at::ScalarType::Int);
     at::Tensor actual_output = output.slice(0, 0, countLen.item().toLong());
-    actual_output = at_npu::native::NPUNativeFunctions::npu_dtype_cast(
-      actual_output, at::kLong);
+    actual_output = actual_output.to(at::KLong);
     return actual_output;
 
 }
