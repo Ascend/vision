@@ -8,13 +8,15 @@ namespace ops {
 
 namespace {
 
+const int SIZE = 8;
+
 at::Tensor &npu_gaussian_blur_kernel_impl(
     const at::Tensor &self,
     at::IntArrayRef kernel_size,
     c10::optional<c10::ArrayRef<double>> sigma,
     std::string padding_mode,
     at::Tensor &result) {
-  c10::SmallVector<float, at_npu::native::SIZE> sigmas = {
+  c10::SmallVector<float, SIZE> sigmas = {
       static_cast<float>(sigma.value()[0]),
       static_cast<float>(sigma.value()[1])};
 
@@ -38,7 +40,7 @@ at::Tensor npu_gaussian_blur_kernel(
   TORCH_CHECK(sigma.has_value(),
       "Op[npu_gaussian_blur] argument[sigma] is mandatory");
 
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self);
+  at::Tensor result = at::empty(self.sizes(), self.options());
 
   npu_gaussian_blur_kernel_impl(
       self,

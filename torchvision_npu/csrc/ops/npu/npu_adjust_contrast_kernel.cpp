@@ -29,7 +29,7 @@ at::Tensor npu_adjust_contrast_kernel(
     const at::Tensor &self,
     at::Scalar factor,
     std::string mean_mode) {
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self);
+  at::Tensor result = at::empty(self.sizes(), self.options());
 
   npu_adjust_contrast_kernel_impl(self, factor, mean_mode, result);
 

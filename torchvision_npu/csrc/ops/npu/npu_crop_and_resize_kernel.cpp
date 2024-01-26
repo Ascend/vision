@@ -7,6 +7,7 @@ namespace vision {
 namespace ops {
 
 namespace {
+const int SIZE = 8;
 
 at::Tensor &npu_crop_and_resize_kernel_impl(
     const at::Tensor &self,
@@ -44,11 +45,10 @@ at::Tensor npu_crop_and_resize_kernel(
   TORCH_CHECK(crop_size.size() == 2,
       "Op[npu_crop_and_resize] argument[crop_size] should have 2 elements: (height, width).");
 
-  c10::SmallVector<int64_t, at_npu::native::SIZE> output_size = {
+  c10::SmallVector<int64_t, SIZE> output_size = {
       static_cast<int64_t>(box_index.size()), self.size(1), crop_size[0], crop_size[1]};
 
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self, output_size);
-
+  at::Tensor result = at::empty(output_size, self.options());
   npu_crop_and_resize_kernel_impl(
       self,
       boxes, box_index, crop_size,

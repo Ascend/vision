@@ -33,7 +33,7 @@ at::Tensor npu_crop_kernel(
   TORCH_CHECK(size.size() == self.sizes().size(),
       "Op[npu_crop] argument[size] represents output shape, (N, C, H, W).");
   
-  at::Tensor result = at_npu::native::OpPreparation::ApplyTensor(self, size);
+  at::Tensor result = at::empty(size, self.options());
 
   npu_crop_kernel_impl(self, axis, offsets, result);
 
