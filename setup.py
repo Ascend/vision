@@ -60,7 +60,6 @@ package_name = os.environ.get('TORCHVISION_NPU_PACKAGE_NAME', 'torchvision_npu')
 setup(name=package_name,
       version=__vision__,
       description='NPU bridge for Torchvision',
-      url='https://gitee.com/ascend/vision',
       packages=find_packages(),
       package_data={package_name: ['lib/*.so', '*.so']},
       ext_modules=get_extensions(),

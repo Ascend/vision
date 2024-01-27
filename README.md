@@ -312,6 +312,12 @@
 | ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
 | GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
 
+## 公开网址
+**表 3** torchvision_npu的配置文件和脚本中存在的公网地址
+
+| 类型 | 文件名  | 公网IP地址/公网URL地址 | 用途说明 |
+| ----- | --------- | ----------- | ------- |
+| 配置文件 | setup.cfg | https://gitee.com/ascend/vision | 用于打包whl的url入参 |
 
 **Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**
 

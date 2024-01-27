@@ -608,8 +608,6 @@ def rotate(
     Returns:
         PIL Image or Tensor or numpy.ndarray: Rotated image.
 
-    .. _filters: https://pillow.readthedocs.io/en/latest/handbook/concepts.html#filters
-
     """
     if resample is not None:
         warnings.warn(
@@ -964,9 +962,7 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     `hue_factor` is the amount of shift in H channel and must be in the
     interval `[-0.5, 0.5]`.
 
-    See `Hue`_ for more details.
-
-    .. _Hue: https://en.wikipedia.org/wiki/Hue
+    See `Hue`_ for more details from wikipedia official website.
 
     Args:
         img (PIL Image or Tensor or numpy.ndarray): Image to be adjusted.

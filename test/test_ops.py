@@ -624,7 +624,7 @@ class DeformConvTester(OpTester, unittest.TestCase):
 
     @unittest.skipIf(not torch.npu.is_available(), "npu unavailable")
     def test_compare_cpu_npu_grads(self):
-        # Test from https://github.com/pytorch/vision/issues/2598
+        # Test from the 2598 issue of pytorch vision
         # Run on npu only
         for contiguous in [False, True]:
             # compare grads computed on npu with grads computed on CPU
