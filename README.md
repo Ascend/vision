@@ -53,4 +53,9 @@ cd test
 python -m unittest discover
 ```
 
+# 公开网址
+在torchvision_npu的配置文件和脚本中存在的公网地址：
 
+| 类型 | 文件名  | 公网IP地址/公网URL地址 | 用途说明 |
+| ----- | --------- | ----------- | ------- |
+| 配置文件 | setup.cfg | https://gitee.com/ascend/vision | 用于打包whl的url入参 |
