@@ -127,7 +127,7 @@ def main_worker(rank_id=-1, args=None):
     train_transforms = get_transforms()
     if args.dataset == 'imagenet':
         dataset = dset.ImageFolder(
-            loader=torchvision_npu.dataset.folder.cv2_loader,
+            loader=torchvision_npu.dataset.folder._cv2_loader,
             root=IMAGENET_DATASET_PATH,
             transform=train_transforms,
         )

@@ -38,7 +38,24 @@ def get_extensions():
 
     define_macros = []
 
-    extra_compile_args = {"cxx": []}
+    extra_compile_args = [
+        '-Wno-sign-compare',
+        '-Wno-deprecated-declarations',
+        '-Wno-return-type',
+        '-fstack-protector-all',
+        '-fPIE',
+        '-fPIC',
+        '-pie',
+        '-fvisibility=hidden'
+    ]
+
+    extra_link_args = [
+        "-s",
+        "-Wl,-z,noexecstack",
+        "-Wl,-z,relro",
+        "-Wl,-z,now",
+        "-Wl,--disable-new-dtags,--rpath"
+    ]
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
@@ -51,6 +68,7 @@ def get_extensions():
             include_dirs=include_dirs,
             define_macros=define_macros,
             extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args
         )
     ]
 
