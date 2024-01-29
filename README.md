@@ -63,11 +63,18 @@
 
 1. 运行环境变量。
 
-   设置环境变量脚本，例如：
+   - 设置环境变量脚本，例如：
 
    ```
     # **指的CANN包的安装目录，CANN-xx指的是版本，{arch}为架构名称。
     source /**/CANN-xx/{arch}-linux/bin/setenv.bash
+   ```
+   - 推荐运行环境ASLR级别为2，大部分系统默认为2。
+   ```
+   查看ASLR级别
+    cat /proc/sys/kernel/randomize_va_space
+   设置ASLR级别为2
+    echo 2 > /proc/sys/kernel/randomize_va_space
    ```
 
 2. NPU 适配。
@@ -109,6 +116,9 @@
 | ps_roi_pool   | -    |
 | roi_align     | √    |
 | roi_pool      | √    |
+
+### 接口说明
+为使torchvison在NPU上运行，我们通过Monkey Patch技术对torchvision原有函数的实现进行替换。用户使用原生torchvision库的接口，运行时执行torchvision_npu库中替换的函数实现。
 
 ## 公开网址
 **表 2** torchvision_npu的配置文件和脚本中存在的公网地址
