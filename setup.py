@@ -14,6 +14,7 @@
 
 import os
 import glob
+import importlib
 
 import torch
 import torch_npu
@@ -31,7 +32,6 @@ def get_extensions():
     main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp'))
 
-    # sources = main_file + source_cpu
     sources = main_file
     extension = NpuExtension
 
@@ -56,6 +56,17 @@ def get_extensions():
         "-Wl,-z,now",
         "-Wl,--disable-new-dtags,--rpath"
     ]
+
+    try:
+        extra_compile_args += [
+            '-D__FILENAME__=\"$$(notdir $$(abspath $$<))\"'
+        ]
+        torch_npu_path = importlib.util.find_spec('torch_npu').submodule_search_locations[0]
+        extra_compile_args += [
+            '-I' + os.path.join(torch_npu_path, 'include', 'third_party', 'acl', 'inc')
+        ]
+    except Exception as e:
+        raise ImportError('can not find any torch_npu') from e
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
