@@ -14,6 +14,7 @@
 
 import os
 import glob
+import importlib
 
 import torch
 import torch_npu
@@ -30,10 +31,8 @@ def get_extensions():
 
     main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp'))
 
-    # sources = main_file + source_cpu
     sources = main_file
     extension = NpuExtension
-
 
     define_macros = []
 
@@ -56,6 +55,19 @@ def get_extensions():
         "-Wl,--disable-new-dtags,--rpath"
     ]
 
+    try:
+        extra_compile_args += [
+            '-D__FILENAME__=\"$$(notdir $$(abspath $$<))\"'
+        ]
+        torch_npu_path = importlib.util.find_spec(
+            'torch_npu').submodule_search_locations[0]
+        extra_compile_args += [
+            '-I' + os.path.join(torch_npu_path, 'include',
+                                'third_party', 'acl', 'inc')
+        ]
+    except Exception as e:
+        raise ImportError('can not find any torch_npu') from e
+
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
     include_dirs = [extensions_dir, '*.hpp']
@@ -73,12 +85,15 @@ def get_extensions():
 
     return ext_modules
 
-package_name = os.environ.get('TORCHVISION_NPU_PACKAGE_NAME', 'torchvision_npu')
+
+package_name = os.environ.get(
+    'TORCHVISION_NPU_PACKAGE_NAME', 'torchvision_npu')
 setup(name=package_name,
       version=__vision__,
       description='NPU bridge for Torchvision',
       packages=find_packages(),
       package_data={package_name: ['lib/*.so', '*.so']},
       ext_modules=get_extensions(),
-      cmdclass={"build_ext": BuildExtension.with_options(no_python_abi_suffix=True)}
+      cmdclass={"build_ext": BuildExtension.with_options(
+          no_python_abi_suffix=True)}
       )

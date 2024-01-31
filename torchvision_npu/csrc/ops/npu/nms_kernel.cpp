@@ -47,7 +47,7 @@ at::Tensor nms_kernel_impl(
     auto outputsizeInt = outputsizeBool.to(at::ScalarType::Int);
     auto countLen = at::sum(outputsizeInt, at::ScalarType::Int);
     at::Tensor actual_output = output.slice(0, 0, countLen.item().toLong());
-    actual_output = actual_output.to(at::KLong);
+    actual_output = actual_output.to(at::kLong);
     return actual_output;
 
 }
