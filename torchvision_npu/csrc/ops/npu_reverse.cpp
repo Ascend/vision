@@ -1,22 +1,17 @@
-#include "npu_reverse.h"
-
+#include <ATen/ATen.h>
 #include <torch/types.h>
+#include "../macros.h"
 
 namespace vision {
 namespace ops {
 
-at::Tensor npu_reverse(
-    const at::Tensor &self,
-    at::IntArrayRef axis) {
-  static auto op = c10::Dispatcher::singleton()
-      .findSchemaOrThrow("torchvision::npu_reverse", "")
-      .typed<decltype(npu_reverse)>();
-  return op.call(self, axis);
-}
-
 TORCH_LIBRARY_FRAGMENT(torchvision, m) {
-  m.def(TORCH_SELECTIVE_SCHEMA(
-      "torchvision::npu_reverse(Tensor self, int[] axis) -> Tensor"));
+    m.def(TORCH_SELECTIVE_SCHEMA(
+        "torchvision::_reverse_aclop(Tensor self, int[] axis) -> Tensor"));
+    m.def(TORCH_SELECTIVE_SCHEMA(
+        "torchvision::_horizontal_flip_aclnn(Tensor self) -> Tensor"));
+    m.def(TORCH_SELECTIVE_SCHEMA(
+        "torchvision::_vertical_flip_aclnn(Tensor self) -> Tensor"));
 }
 
 } // namespace ops

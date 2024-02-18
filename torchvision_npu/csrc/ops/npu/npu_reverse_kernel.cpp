@@ -1,41 +1,47 @@
-#include "pytorch_npu_helper.hpp"
-
 #include <ATen/ATen.h>
 #include <torch/library.h>
+
+#include "op_api_common.hpp"
 
 namespace vision {
 namespace ops {
 
 namespace {
 
-at::Tensor &npu_reverse_kernel_impl(
-    const at::Tensor &self,
-    at::IntArrayRef axis,
-    at::Tensor &result) {
-  at_npu::native::OpCommand cmd;
-  cmd.Name("ReverseV2")
-      .Input(self)
-      .Input(axis, at::kInt)
-      .Output(result)
-      .Run();
+at::Tensor reverse_aclop_kernel(const at::Tensor& self, at::IntArrayRef axis)
+{
+    at::Tensor result = at::empty(self.sizes(), self.options());
 
-  return result;
+    at_npu::native::OpCommand cmd;
+    cmd.Name("ReverseV2")
+        .Input(self)
+        .Input(axis, at::kInt)
+        .Output(result)
+        .Run();
+
+    return result;
 }
 
-at::Tensor npu_reverse_kernel(
-    const at::Tensor &self,
-    at::IntArrayRef axis) {
-  at::Tensor result = at::empty(self.sizes(), self.options());
+at::Tensor horizontal_flip_aclnn_kernel(const at::Tensor& self)
+{
+    at::Tensor result = at::empty(self.sizes(), self.options());
+    EXEC_NPU_CMD(acldvppHorizontalFlip, self, result);
+    return result;
+}
 
-  npu_reverse_kernel_impl(self, axis, result);
-
-  return result;
+at::Tensor vertical_flip_aclnn_kernel(const at::Tensor& self)
+{
+    at::Tensor result = at::empty(self.sizes(), self.options());
+    EXEC_NPU_CMD(acldvppVerticalFlip, self, result);
+    return result;
 }
 
 } // namespace
 
 TORCH_LIBRARY_IMPL(torchvision, XLA, m) {
-  m.impl(TORCH_SELECTIVE_NAME("torchvision::npu_reverse"), TORCH_FN(npu_reverse_kernel));
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::_reverse_aclop"), TORCH_FN(reverse_aclop_kernel));
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::_horizontal_flip_aclnn"), TORCH_FN(horizontal_flip_aclnn_kernel));
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::_vertical_flip_aclnn"), TORCH_FN(vertical_flip_aclnn_kernel));
 }
 
 } // namespace ops

@@ -30,11 +30,11 @@ def get_extensions():
     extensions_dir = os.path.join(this_dir, 'torchvision_npu', 'csrc')
 
     main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp')) + \
-                glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp'))
+                glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp')) + \
+                glob.glob(os.path.join(extensions_dir, '*.cpp'))
 
     sources = main_file
     extension = NpuExtension
-
 
     define_macros = []
 

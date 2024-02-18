@@ -1,43 +1,42 @@
-#include "pytorch_npu_helper.hpp"
-
 #include <ATen/ATen.h>
 #include <torch/library.h>
+
+#include "op_api_common.hpp"
 
 namespace vision {
 namespace ops {
 
 namespace {
 
-at::Tensor &npu_img_to_tensor_kernel_impl(
-    const at::Tensor &self,
-    at::Tensor &result) {
-  at_npu::native::OpCommand cmd;
-  cmd.Name("ImgToTensor")
-      .Input(self)
-      .Output(result)
-      .Run();
+at::Tensor img_to_tensor_aclop_kernel(const at::Tensor& self)
+{
+    TORCH_CHECK(self.dtype() == at::kByte,
+        "Op[img_to_tensor_aclop] input dtype should be uint8.");
+    
+    auto output_size = self.sizes();
+    at::Tensor result = at::empty(output_size, self.options().dtype(at::kFloat));
 
-  return result;
+    at_npu::native::OpCommand cmd;
+    cmd.Name("ImgToTensor")
+        .Input(self)
+        .Output(result)
+        .Run();
+
+    return result;
 }
 
-at::Tensor npu_img_to_tensor_kernel(
-    const at::Tensor &self) {
-  TORCH_CHECK(self.dtype() == at::kByte,
-      "Op[npu_img_to_tensor] input dtype should be uint8.");
-  
-  auto output_size = self.sizes();
-
-  at::Tensor result = at::empty(output_size, self.options().dtype(at::kFloat));
-
-  npu_img_to_tensor_kernel_impl(self, result);
-
-  return result;
+at::Tensor img_to_tensor_aclnn_kernel(const at::Tensor& self)
+{
+    at::Tensor result = at::empty(self.sizes(), self.options().dtype(at::kFloat));
+    EXEC_NPU_CMD(acldvppImgToTensor, self, result);
+    return result;
 }
 
 } // namespace
 
 TORCH_LIBRARY_IMPL(torchvision, XLA, m) {
-  m.impl(TORCH_SELECTIVE_NAME("torchvision::npu_img_to_tensor"), TORCH_FN(npu_img_to_tensor_kernel));
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::_img_to_tensor_aclop"), TORCH_FN(img_to_tensor_aclop_kernel));
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::_img_to_tensor_aclnn"), TORCH_FN(img_to_tensor_aclnn_kernel));
 }
 
 } // namespace ops

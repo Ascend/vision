@@ -356,6 +356,17 @@ inline aclBoolArray* ConvertType(const std::array<bool, N>& value)
     return array;
 }
 
+inline aclFloatArray *ConvertType(const at::ArrayRef<float> &value)
+{
+    static const auto aclCreateFloatArray = GET_OP_API_FUNC(aclCreateFloatArray);
+    if (aclCreateFloatArray == nullptr) {
+        return nullptr;
+    }
+
+    auto array = aclCreateFloatArray(value.data(), value.size());
+    return array;
+}
+
 inline aclBoolArray* ConvertType(const at::ArrayRef<bool>& value)
 {
     static const auto aclCreateBoolArray = GET_OP_API_FUNC(aclCreateBoolArray);
@@ -460,6 +471,16 @@ inline void Release(aclIntArray* p)
     aclDestroyIntArray(p);
 }
 
+inline void Release(aclFloatArray *p)
+{
+    static const auto aclDestroyFloatArray = GET_OP_API_FUNC(aclDestroyFloatArray);
+    if (aclDestroyFloatArray == nullptr) {
+        return;
+    }
+
+    aclDestroyFloatArray(p);
+}
+
 inline void Release(aclBoolArray* p)
 {
     static const auto aclDestroyBoolArray = GET_OP_API_FUNC(aclDestroyBoolArray);
@@ -528,6 +549,11 @@ template <typename T>
 void AddParamToBuf(const T& value)
 {
     MEMCPY_TO_BUF(&value, sizeof(T));
+}
+
+inline void AddParamToBuf(const at::ArrayRef<float>& at_array)
+{
+    MEMCPY_TO_BUF(at_array.data(), static_cast<int64_t>(at_array.size() * sizeof(float)));
 }
 
 void AddParamToBuf(const at::Tensor&);

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import numbers
 import warnings
 from typing import List, Tuple, Optional
@@ -80,9 +81,22 @@ cv2_interpolation_mapping = {
     InterpolationMode.LANCZOS: cv2.INTER_LANCZOS4,
 }
 
+_npu_interpolation_mode_mapping = {
+    InterpolationMode.BILINEAR: 0,
+    InterpolationMode.NEAREST: 1,
+    InterpolationMode.BICUBIC: 2,
+}
+
+_npu_padding_mode_mapping = {
+    "constant": 0,
+    "edge": 1,
+    "reflect": 2,
+    "symmetric": 3,
+}
+
 
 def _assert_image_npu(img: torch.Tensor):
-    if img.ndim != 4:
+    if (img.ndim != 4) or (img.shape[0] != 1):
         raise ValueError(f"Using npu backend, image shoule be npu tensor whith NCHW format, \
             but got {img.device.type} tensor with {img.ndim} dims.")
 
@@ -147,7 +161,7 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
 
     if tensor.device.type == 'npu':
         _assert_image_npu(tensor)
-        return F_npu.normalize(tensor, mean, std, inplace)
+        return F_npu._normalize(tensor, mean, std, inplace)
 
     return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
 
@@ -178,7 +192,7 @@ def hflip(img: Tensor) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.hflip(img)
+        return F_npu._hflip(img)
 
     return F_t.hflip(img)
 
@@ -190,7 +204,7 @@ def resized_crop(
         height: int,
         width: int,
         size: List[int],
-        interpolation: torchvision.transforms.InterpolationMode = torchvision.transforms.InterpolationMode.BILINEAR
+        interpolation: InterpolationMode = InterpolationMode.BILINEAR
 ) -> Tensor:
     """Crop the given image and resize it to desired size.
     If the image is torch Tensor, it is expected
@@ -221,9 +235,14 @@ def resized_crop(
     """
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resized_crop)
+
     if isinstance(img, torch.Tensor) and img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.resized_crop(img, top, left, height, width, size, interpolation)
+        if interpolation not in _npu_interpolation_mode_mapping:
+            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
+        crop_param = [top, left, height, width]
+        return F_npu._resized_crop(img, crop_param, size, _npu_interpolation_mode_mapping[interpolation])
+
     img = crop(img, top, left, height, width)
     img = resize(img, size, interpolation)
     return img
@@ -243,7 +262,7 @@ def to_tensor(pic) -> Tensor:
     """
     if isinstance(pic, torch.Tensor) and pic.dtype == torch.uint8 and pic.device.type == 'npu':
         _assert_image_npu(pic)
-        return F_npu.to_tensor(pic)
+        return F_npu._to_tensor(pic)
     return F.to_tensor_ori(pic)
 
 
@@ -307,7 +326,7 @@ def vflip(img: Tensor) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.vflip(img)
+        return F_npu._vflip(img)
 
     return F_t.vflip(img)
 
@@ -340,7 +359,7 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
             "Argument interpolation should be of type InterpolationMode instead of int. "
             "Please, use InterpolationMode enum."
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(interpolation)
+        interpolation = F._interpolation_modes_from_int(interpolation)
     if torchvision.get_image_backend() == 'cv2':
         if not isinstance(img, np.ndarray):
             raise TypeError(
@@ -355,12 +374,14 @@ def resize(img: Tensor, size: List[int], interpolation: InterpolationMode = Inte
         raise TypeError("Argument interpolation should be a InterpolationMode")
 
     if not isinstance(img, torch.Tensor):
-        pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
+        pil_interpolation = F.pil_modes_mapping[interpolation]
         return F_pil.resize(img, size=size, interpolation=pil_interpolation)
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.resize(img, size=size, interpolation=interpolation.value)
+        if interpolation not in _npu_interpolation_mode_mapping:
+            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
+        return F_npu._resize(img, size=size, interpolation=_npu_interpolation_mode_mapping[interpolation])
 
     return F_t.resize(img, size=size, interpolation=interpolation.value)
 
@@ -392,7 +413,7 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.crop(img, top, left, height, width)
+        return F_npu._crop(img, top, left, height, width)
 
     return F_t.crop(img, top, left, height, width)
 
@@ -572,9 +593,42 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
+        if padding_mode not in _npu_padding_mode_mapping:
+            raise TypeError(f"NPU does not support {padding_mode} padding_mode")
+        return F_npu._pad(img, padding=padding, fill=fill, padding_mode=_npu_padding_mode_mapping[padding_mode])
 
     return F_t.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
+
+
+def _get_affine_matrix(
+    center: List[float], angle: float, translate: List[float], scale: float, shear: List[float]
+) -> List[float]:
+    rot = math.radians(angle)
+    sx, sy = [math.radians(s) for s in shear]
+
+    cx, cy = center
+    tx, ty = translate
+
+    # RSS without scaling
+    sy_cos = math.cos(sy)
+    if sy_cos != 0:
+        a = math.cos(rot - sy) / sy_cos
+        b = -math.cos(rot - sy) * math.tan(sx) / sy_cos - math.sin(rot)
+        c = math.sin(rot - sy) / sy_cos
+        d = -math.sin(rot - sy) * math.tan(sx) / sy_cos + math.cos(rot)
+    else:
+        raise ValueError("Zero division error, math.cos(sy)=0.")
+
+    matrix = [a, b, 0.0, c, d, 0.0]
+    matrix = [x * scale for x in matrix]
+    # Apply inverse of center translation: RSS * C^-1
+    matrix[2] += matrix[0] * (-cx) + matrix[1] * (-cy)
+    matrix[5] += matrix[3] * (-cx) + matrix[4] * (-cy)
+    # Apply translation and center : T * C * RSS * C^-1
+    matrix[2] += cx + tx
+    matrix[5] += cy + ty
+
+    return matrix
 
 
 def rotate(
@@ -613,7 +667,7 @@ def rotate(
         warnings.warn(
             "Argument resample is deprecated and will be removed since v0.10.0. Please, use interpolation instead"
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(resample)
+        interpolation = F._interpolation_modes_from_int(resample)
 
     # Backward compatibility with integer value
     if isinstance(interpolation, int):
@@ -621,7 +675,7 @@ def rotate(
             "Argument interpolation should be of type InterpolationMode instead of int. "
             "Please, use InterpolationMode enum."
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(interpolation)
+        interpolation = F._interpolation_modes_from_int(interpolation)
 
     if not isinstance(angle, (int, float)):
         raise TypeError("Argument angle should be int or float")
@@ -644,8 +698,15 @@ def rotate(
                                 fill=fill)
 
     if not isinstance(img, torch.Tensor):
-        pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
+        pil_interpolation = F.pil_modes_mapping[interpolation]
         return F_pil.rotate(img, angle=angle, interpolation=pil_interpolation, expand=expand, center=center, fill=fill)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        if interpolation not in _npu_interpolation_mode_mapping:
+            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
+        rotate_force_param = [angle, _npu_interpolation_mode_mapping[interpolation], expand]
+        return F_npu._rotate(img, rotate_force_param=rotate_force_param, center=center, fill=fill)
 
     center_f = [0.0, 0.0]
     if center is not None:
@@ -655,7 +716,7 @@ def rotate(
 
     # due to current incoherence of rotation angle direction between affine and rotate implementations
     # we need to set -angle.
-    matrix = torchvision.transforms.functional._get_inverse_affine_matrix(center_f, -angle, [0.0, 0.0], 1.0, [0.0, 0.0])
+    matrix = F._get_inverse_affine_matrix(center_f, -angle, [0.0, 0.0], 1.0, [0.0, 0.0])
     return F_t.rotate(img, matrix=matrix, interpolation=interpolation.value, expand=expand, fill=fill)
 
 
@@ -697,7 +758,7 @@ def affine(
         warnings.warn(
             "Argument resample is deprecated and will be removed since v0.10.0. Please, use interpolation instead"
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(resample)
+        interpolation = F._interpolation_modes_from_int(resample)
 
     # Backward compatibility with integer value
     if isinstance(interpolation, int):
@@ -705,7 +766,7 @@ def affine(
             "Argument interpolation should be of type InterpolationMode instead of int. "
             "Please, use InterpolationMode enum."
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(interpolation)
+        interpolation = F._interpolation_modes_from_int(interpolation)
 
     if fillcolor is not None:
         warnings.warn(
@@ -759,7 +820,7 @@ def affine(
             raise TypeError("Opencv does not support box and hamming interpolation")
         cv2_interpolation = cv2_interpolation_mapping[interpolation]
         center = [img_size[0] * 0.5, img_size[1] * 0.5]
-        M = torchvision.transforms.functional._get_inverse_affine_matrix(center, -angle, translate, scale, shear)
+        M = F._get_inverse_affine_matrix(center, -angle, translate, scale, shear)
         return F_cv2.affine(img, matrix=np.array(M).reshape(2, 3), interpolation=cv2_interpolation, fill=fill)
 
     if not isinstance(img, torch.Tensor):
@@ -767,12 +828,21 @@ def affine(
         # otherwise image rotated by 90 degrees is shifted vs output image of torch.rot90 or F_t.affine
 
         center = [img_size[0] * 0.5, img_size[1] * 0.5]
-        matrix = torchvision.transforms.functional._get_inverse_affine_matrix(center, angle, translate, scale, shear)
-        pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
+        matrix = F._get_inverse_affine_matrix(center, angle, translate, scale, shear)
+        pil_interpolation = F.pil_modes_mapping[interpolation]
         return F_pil.affine(img, matrix=matrix, interpolation=pil_interpolation, fill=fill)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        if interpolation not in _npu_interpolation_mode_mapping:
+            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
+        center = [img_size[0] * 0.5, img_size[1] * 0.5]
+        # DVPP affine matrix should be non-inverse
+        matrix = _get_affine_matrix(center, angle, translate, scale, shear)
+        return F_npu._affine(img, matrix=matrix, interpolation=_npu_interpolation_mode_mapping[interpolation], fill=fill)
+
     translate_f = [1.0 * t for t in translate]
-    matrix = torchvision.transforms.functional._get_inverse_affine_matrix([0.0, 0.0], angle, translate_f, scale, shear)
+    matrix = F._get_inverse_affine_matrix([0.0, 0.0], angle, translate_f, scale, shear)
     return F_t.affine(img, matrix=matrix, interpolation=interpolation.value, fill=fill)
 
 
@@ -796,6 +866,10 @@ def invert(img: Tensor) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.invert(img)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu._invert(img)
 
     return F_t.invert(img)
 
@@ -831,7 +905,7 @@ def perspective(
         PIL Image or Tensor or numpy.ndarray: transformed Image.
     """
 
-    coeffs = torchvision.transforms.functional._get_perspective_coeffs(startpoints, endpoints)
+    coeffs = F._get_perspective_coeffs(startpoints, endpoints)
 
     # Backward compatibility with integer value
     if isinstance(interpolation, int):
@@ -839,7 +913,7 @@ def perspective(
             "Argument interpolation should be of type InterpolationMode instead of int. "
             "Please, use InterpolationMode enum."
         )
-        interpolation = torchvision.transforms.functional._interpolation_modes_from_int(interpolation)
+        interpolation = F._interpolation_modes_from_int(interpolation)
 
     if not isinstance(interpolation, InterpolationMode):
         raise TypeError("Argument interpolation should be a InterpolationMode")
@@ -856,8 +930,14 @@ def perspective(
         return F_cv2.perspective(img, coeffs, interpolation=cv2_interpolation, fill=fill)
 
     if not isinstance(img, torch.Tensor):
-        pil_interpolation = torchvision.transforms.functional.pil_modes_mapping[interpolation]
+        pil_interpolation = F.pil_modes_mapping[interpolation]
         return F_pil.perspective(img, coeffs, interpolation=pil_interpolation, fill=fill)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        if interpolation not in _npu_interpolation_mode_mapping:
+            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
+        return F_npu._perspective(img, coeffs, interpolation=_npu_interpolation_mode_mapping[interpolation], fill=fill)
 
     return F_t.perspective(img, coeffs, interpolation=interpolation.value, fill=fill)
 
@@ -887,7 +967,7 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.adjust_brightness(img, brightness_factor)
+        return F_npu._adjust_brightness(img, brightness_factor)
 
     return F_t.adjust_brightness(img, brightness_factor)
 
@@ -917,7 +997,7 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.adjust_contrast(img, contrast_factor)
+        return F_npu._adjust_contrast(img, contrast_factor)
 
     return F_t.adjust_contrast(img, contrast_factor)
 
@@ -947,7 +1027,7 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
 
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.adjust_saturation(img, saturation_factor)
+        return F_npu._adjust_saturation(img, saturation_factor)
 
     return F_t.adjust_saturation(img, saturation_factor)
 
@@ -989,7 +1069,7 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     
     if img.device.type == 'npu':
         _assert_image_npu(img)
-        return F_npu.adjust_hue(img, hue_factor)
+        return F_npu._adjust_hue(img, hue_factor)
 
     return F_t.adjust_hue(img, hue_factor)
 
@@ -1019,6 +1099,10 @@ def posterize(img: Tensor, bits: int) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.posterize(img, bits)
 
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu._posterize(img, bits)
+
     return F_t.posterize(img, bits)
 
 
@@ -1042,6 +1126,10 @@ def solarize(img: Tensor, threshold: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.solarize(img, threshold)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu._solarize(img, threshold)
 
     return F_t.solarize(img, threshold)
 
@@ -1185,12 +1273,12 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
 
     if t_img.device.type == 'npu':
         _assert_image_npu(t_img)
-        return F_npu.gaussian_blur(t_img, kernel_size, sigma)
+        return F_npu._gaussian_blur(t_img, kernel_size, sigma)
 
     output = F_t.gaussian_blur(t_img, kernel_size, sigma)
 
     if not isinstance(img, torch.Tensor):
-        output = torchvision.transforms.functional.to_pil_image(output)
+        output = F.to_pil_image(output)
     return output
 
 
@@ -1221,5 +1309,9 @@ def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.to_grayscale(img, num_output_channels)
+
+    if img.device.type == 'npu':
+        _assert_image_npu(img)
+        return F_npu._rgb_to_grayscale(img, num_output_channels)
 
     return F_t.rgb_to_grayscale(img, num_output_channels)

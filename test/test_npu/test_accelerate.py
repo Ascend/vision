@@ -1,21 +1,20 @@
 import unittest
-
 import torch_npu
-import torchvision_npu
 from torchvision import datasets, transforms
+import torchvision_npu
 
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 
 
 class TestAccelerate(unittest.TestCase):
-    def test_accelerate(self):
+    def test_accelerate_npu(self):
         path = "../Data/"
         torchvision_npu.set_image_backend('npu')
         train_datasets = datasets.ImageFolder(path, transforms.RandomHorizontalFlip())
         self.assertTrue(train_datasets.accelerate_enable)
         self.assertNotEqual(train_datasets.device, "cpu")
 
-    def test_accelerate(self):
+    def test_accelerate_cpu(self):
         path = "../Data/"
         torchvision_npu.set_image_backend('PIL')
         train_datasets = datasets.ImageFolder(path)

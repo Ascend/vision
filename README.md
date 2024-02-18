@@ -213,7 +213,7 @@
    ...
    ```
 
-   数据预处理多进程场景下，worker进程默认运行在主进程设置的deive上（如无设置默认0）。
+   数据预处理多进程场景下，worker进程默认运行在主进程设置的device上（如无设置默认0）。
    可通过set_accelerate_npu接口设置worker进程的device，例如：
    ``` python
    # 设置worker进程的device_id
@@ -302,22 +302,27 @@
 
 | transforms           | functional       | 处理结果是否和pillow完全一致 |    限制                 |
 |----------------------|------------------|--------------------|------------------------------  |
-|                      | npu_loader       | √                        | 分辨率: 6x4~16384x16384   |
+|                      | default_loader   | √                        | 分辨率: 6x4~16384x16384   |
 | ToTensor             | to_tensor        | √                        | 分辨率: 6x4~4096x8192     |
 | Normalize            | normalize        | √                        | 分辨率: 6x4~4096x8192     |
 | Resize               | resize           | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768   |
-| CenterCrop           | center_crop      | √                        | 分辨率: 6x4~32768x32768   |
-| FiveCrop             | five_crop        | √                        | 分辨率: 6x4~32768x32768   |
-| TenCrop              | ten_crop         | √                        | 分辨率: 6x4~32768x32768   |
+| CenterCrop<br>FiveCrop<br>TenCrop | crop      | √                        | 分辨率: 6x4~32768x32768   |
 | Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充值不支持负数 |
 | RandomHorizontalFlip | hflip            | √                        | 分辨率: 6x4~4096x8192     |
 | RandomVerticalFlip   | vflip            | √                        | 分辨率: 6x4~4096x8192     |
-| RandomResizedCrop    | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>插值模式不支持BICUBIC |
+| RandomResizedCrop<br>RandomSizedCrop | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>插值模式不支持BICUBIC |
 | ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
 | ColorJitter          | adjust_contrast  | 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
 | ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
 | ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
 | GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
+| RandomAffine         | affine           | 底层实现有差异 | |
+| RandomPerspective    | perspective      | 底层实现有差异 | |
+| RandomRotation       | rotate           | 底层实现有差异 | |
+| Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | |
+| RandomPosterize      | posterize    | √ | |
+| RandomSolarize       | solarize     | √ | |
+| RandomInvert         | invert       | √ | |
 
 ### 接口说明
 为使torchvison在NPU上运行，我们通过Monkey Patch技术对torchvision原有函数的实现进行替换。用户使用原生torchvision库的接口，运行时执行torchvision_npu库中替换的函数实现。

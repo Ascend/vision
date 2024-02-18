@@ -25,9 +25,15 @@ import torchvision
 from torchvision.datasets import folder as fold
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape
 
-_npu_accelerate = ["ToTensor", "Normalize", "RandomHorizontalFlip", "RandomVerticalFlip",
-                   "RandomResizedCrop", "Resize", "CenterCrop", "FiveCrop", "TenCrop",
-                   "Pad", "ColorJitter", "GaussianBlur"]
+_npu_set_first = True
+
+_npu_accelerate_list = [
+    "ToTensor", "Normalize", "Resize",
+    "CenterCrop", "Pad", "RandomCrop",
+    "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop", "RandomSizedCrop", "FiveCrop", "TenCrop",
+    "ColorJitter", "RandomRotation", "RandomAffine", "Grayscale", "RandomGrayscale",
+    "RandomPerspective", "GaussianBlur", "RandomInvert", "RandomPosterize",
+    "RandomSolarize"]
 
 
 def add_datasets_folder():
@@ -43,7 +49,7 @@ def _assert_image_3d(img: torch.Tensor):
 
 def npu_rollback(transform) -> bool:
     def check_unsupported(t) -> bool:
-        if t.__class__.__name__ not in _npu_accelerate:
+        if t.__class__.__name__ not in _npu_accelerate_list:
             print("Warning: Cannot accelerate [{}]. Roll back to native PIL implementation."
                 .format(t.__class__.__name__), file=sys.stderr)
             torchvision.set_image_backend('PIL')
@@ -119,7 +125,7 @@ def _cv2_loader(path: str) -> Any:
         return np.asarray(img)
 
 
-def npu_loader(path: str) -> Any:
+def _npu_loader(path: str) -> Any:
     with open(path, "rb") as f:
         f.seek(0)
         prefix = f.read(16)
@@ -131,16 +137,21 @@ def npu_loader(path: str) -> Any:
             f.seek(0)
             bytes_string = f.read()
             arr = np.frombuffer(bytes_string, dtype=np.uint8)
-            addr = 16
-            length = len(bytes_string)
-            addr_arr = list(map(int, pack('<Q', addr)))
-            len_arr = list(map(int, pack('<Q', length)))
-            arr = np.hstack((addr_arr, len_arr, arr, [0]))
-            arr = np.array(arr, dtype=np.uint8)
+            if not torch.npu.is_jit_compile_false():
+                addr = 16
+                length = len(bytes_string)
+                addr_arr = list(map(int, pack('<Q', addr)))
+                len_arr = list(map(int, pack('<Q', length)))
+                arr = np.hstack((addr_arr, len_arr, arr, [0]))
+                arr = np.array(arr, dtype=np.uint8)
             uint8_tensor = torch.tensor(arr).npu(non_blocking=True)
             channels = 3
 
-            img = torch.ops.torchvision.npu_decode_jpeg(
+            if torch.npu.is_jit_compile_false():
+                return torch.ops.torchvision._decode_jpeg_aclnn(
+                    uint8_tensor, image_shape=image_shape, channels=channels)
+
+            img = torch.ops.torchvision._decode_jpeg_aclop(
                 uint8_tensor, image_shape=image_shape, channels=channels)
             _assert_image_3d(img)
             return img.unsqueeze(0)
@@ -154,9 +165,13 @@ def npu_loader(path: str) -> Any:
 
 def default_loader(path: str) -> Any:
     from torchvision import get_image_backend
-
+    global _npu_set_first
     if get_image_backend() == 'npu':
-        return npu_loader(path)
+        if _npu_set_first:
+            torch.npu.set_compile_mode(jit_compile=False)
+            torch.ops.torchvision._dvpp_init()
+            _npu_set_first = False
+        return _npu_loader(path)
     elif get_image_backend() == 'cv2':
         return _cv2_loader(path)
     elif get_image_backend() == "accimage":

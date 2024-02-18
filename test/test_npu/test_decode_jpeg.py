@@ -1,11 +1,9 @@
 import numpy as np
-
 import torch
 import torch_npu
 import torchvision
-import torchvision_npu
-
 from torch_npu.testing.testcase import TestCase, run_tests
+import torchvision_npu
 
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 
@@ -15,14 +13,21 @@ class TestDecodeJpeg(TestCase):
         path = "../Data/dog/dog.0001.jpg"
         cpu_output = torchvision.datasets.folder.pil_loader(path)
         cpu_output = torch.tensor(np.array(cpu_output)).permute(2, 0, 1).unsqueeze(0)
-        npu_output = torchvision_npu.datasets.folder.npu_loader(path).cpu()
+
+        torch.npu.set_compile_mode(jit_compile=True)
+        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
+        self.assertEqual(npu_output, cpu_output)
+
+        torch.npu.set_compile_mode(jit_compile=False)
+        torch.ops.torchvision._dvpp_init()
+        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 
     def test_decode_bmp(self):
-        path = "../Data/bmp/pic.bmp"
+        path = "../Data/bmp/pic.0001.bmp"
         cpu_output = torchvision.datasets.folder.pil_loader(path)
         cpu_output = torch.tensor(np.array(cpu_output)).permute(2, 0, 1).unsqueeze(0)
-        npu_output = torchvision_npu.datasets.folder.npu_loader(path).cpu()
+        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 
 if __name__ == '__main__':

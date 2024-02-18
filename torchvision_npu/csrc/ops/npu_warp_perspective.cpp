@@ -7,9 +7,8 @@ namespace ops {
 
 TORCH_LIBRARY_FRAGMENT(torchvision, m) {
     m.def(TORCH_SELECTIVE_SCHEMA(
-        "torchvision::_img_to_tensor_aclop(Tensor self) -> Tensor"));
-    m.def(TORCH_SELECTIVE_SCHEMA(
-        "torchvision::_img_to_tensor_aclnn(Tensor self) -> Tensor"));
+        "torchvision::_warp_perspective_aclnn(Tensor self, float[]? matrix, int interpolation_mode=0, \
+        int padding_mode=0, float[]? fill=None) -> Tensor"));
 }
 
 } // namespace ops
