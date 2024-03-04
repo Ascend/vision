@@ -33,6 +33,7 @@ def patch_transform_methods():
     setattr(torchvision.transforms.functional, "to_tensor_ori", torchvision.transforms.functional.to_tensor)
     torchvision.transforms.functional.to_tensor = to_tensor
 
+
 def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
     """Normalize a float tensor image with mean and standard deviation.
     This transform does not support PIL Image.
@@ -83,9 +84,10 @@ def hflip(img: Tensor) -> Tensor:
         return F_pil.hflip(img)
 
     if hasattr(img, 'device') and hasattr(img.device, 'type') and img.device.type == 'npu':
-       return F_npu.hflip(img)
+        return F_npu.hflip(img)
 
     return F_t.hflip(img)
+
 
 def resized_crop(
     img: Tensor,

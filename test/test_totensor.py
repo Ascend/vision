@@ -14,9 +14,8 @@
 import unittest
 import torch
 import torchvision
-
-import torchvision_npu
 import torchvision.transforms as transforms
+import torchvision_npu
 
 
 class TestToTensor(unittest.TestCase):

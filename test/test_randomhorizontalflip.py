@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torchvision_npu
 import torchvision.transforms as transforms
 from torch_npu.testing.testcase import TestCase, run_tests
+import torchvision_npu
 
 
 class TestRandomHorizontalFlip(TestCase):

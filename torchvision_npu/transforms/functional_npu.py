@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 import numpy as np
 import torch
-import torch_npu
 from torch import Tensor
 from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
-from typing import List
+import torch_npu
 
 
 def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:

@@ -22,6 +22,6 @@
 #define NPU_NAME_SPACE at_npu::native
 
 #define CHECK_NPU(x) \
-  TORCH_CHECK(x.device().type() == at::kXLA, #x " must be a NPU tensor")
+    TORCH_CHECK(x.device().type() == at::kXLA, #x " must be a NPU tensor")
 
 #endif  // PYTORCH_NPU_HELPER_HPP_

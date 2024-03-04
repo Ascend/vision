@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Any, Tuple
 import numpy as np
 import torch
-import torch_npu
 import torchvision
-
-from typing import Any, Tuple
-
 from torchvision.datasets import folder as fold
+import torch_npu
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
 
 

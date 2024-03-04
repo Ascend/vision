@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import unittest
+from PIL import Image
 import torch
-import torchvision_npu
 from torchvision.datasets import folder as fold
 import torchvision.transforms as transforms
 from torchvision.transforms.functional import InterpolationMode
-from PIL import Image
+import torchvision_npu
 
 
 class TestCropAndResize(unittest.TestCase):

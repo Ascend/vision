@@ -1,19 +1,18 @@
-from common_utils import set_rng_seed
 import math
 import unittest
-
+from typing import Tuple
+from functools import lru_cache
 import numpy as np
+from common_utils import set_rng_seed
 
 import torch
-import torch_npu
-from functools import lru_cache
 from torch import Tensor
 from torch.autograd import gradcheck
 from torch import autograd
 from torch.nn.modules.utils import _pair
 from torchvision import ops
+import torch_npu
 import torchvision_npu
-from typing import Tuple
 
 
 class OpTester(object):
@@ -43,10 +42,12 @@ class OpTester(object):
     def _test_backward(self, device, contiguous):
         pass
 
+
 class RoIOpTester(OpTester):
     @classmethod
     def setUpClass(cls):
         cls.dtype = torch.float
+
     def _test_forward(self, device, contiguous, x_dtype=None, rois_dtype=None):
         x_dtype = self.dtype if x_dtype is None else x_dtype
         rois_dtype = self.dtype if rois_dtype is None else rois_dtype
@@ -120,14 +121,15 @@ class RoIOpTester(OpTester):
             boxes = torch.tensor([[0, 0, 3]], dtype=a.dtype)
             ops.roi_pool(a, [boxes], output_size=(2, 2))
 
+    # Test not fully realized
     def fn(*args, **kwargs):
-        pass
+        return 0
 
     def get_script_fn(*args, **kwargs):
-        pass
+        return 0
 
     def expected_fn(*args, **kwargs):
-        pass
+        return 0
 
     @unittest.skipIf(not torch.npu.is_available(), "npu unavailable")
     def test_autocast(self):
@@ -142,9 +144,9 @@ class RoIPoolTester(RoIOpTester, unittest.TestCase):
 
     def get_script_fn(self, rois, pool_size):
         @torch.jit.script
-        def script_fn(input, rois, pool_size):
+        def script_fn(fn_input, rois, pool_size):
             # type: (Tensor, Tensor, int) -> Tensor
-            return ops.roi_pool(input, rois, pool_size, 1.0)[0]
+            return ops.roi_pool(fn_input, rois, pool_size, 1.0)[0]
         return lambda x: script_fn(x, rois, pool_size)
 
     def expected_fn(self, x, rois, pool_h, pool_w, spatial_scale=1, sampling_ratio=-1,
@@ -185,9 +187,9 @@ class PSRoIPoolTester(RoIOpTester, unittest.TestCase):
 
     def get_script_fn(self, rois, pool_size):
         @torch.jit.script
-        def script_fn(input, rois, pool_size):
+        def script_fn(fn_input, rois, pool_size):
             # type: (Tensor, Tensor, int) -> Tensor
-            return ops.ps_roi_pool(input, rois, pool_size, 1.0)[0]
+            return ops.ps_roi_pool(fn_input, rois, pool_size, 1.0)[0]
         return lambda x: script_fn(x, rois, pool_size)
 
     def expected_fn(self, x, rois, pool_h, pool_w, spatial_scale=1, sampling_ratio=-1,
@@ -265,9 +267,9 @@ class RoIAlignTester(RoIOpTester, unittest.TestCase):
 
     def get_script_fn(self, rois, pool_size):
         @torch.jit.script
-        def script_fn(input, rois, pool_size):
+        def script_fn(fn_input, rois, pool_size):
             # type: (Tensor, Tensor, int) -> Tensor
-            return ops.roi_align(input, rois, pool_size, 1.0)[0]
+            return ops.roi_align(fn_input, rois, pool_size, 1.0)[0]
         return lambda x: script_fn(x, rois, pool_size)
 
     def expected_fn(self, in_data, rois, pool_h, pool_w, spatial_scale=1, sampling_ratio=-1, aligned=False,
@@ -320,9 +322,9 @@ class PSRoIAlignTester(RoIOpTester, unittest.TestCase):
 
     def get_script_fn(self, rois, pool_size):
         @torch.jit.script
-        def script_fn(input, rois, pool_size):
+        def script_fn(fn_input, rois, pool_size):
             # type: (Tensor, Tensor, int) -> Tensor
-            return ops.ps_roi_align(input, rois, pool_size, 1.0)[0]
+            return ops.ps_roi_align(fn_input, rois, pool_size, 1.0)[0]
         return lambda x: script_fn(x, rois, pool_size)
 
     def expected_fn(self, in_data, rois, pool_h, pool_w, device, spatial_scale=1,
@@ -469,6 +471,7 @@ class NMSTester(unittest.TestCase):
         keep32 = ops.nms(boxes, scores, iou_thres)
         keep16 = ops.nms(boxes.to(torch.float16), scores.to(torch.float16), iou_thres)
         self.assertTrue(torch.all(torch.eq(keep32, keep16)))
+
 
 class DeformConvTester(OpTester, unittest.TestCase):
     @classmethod
@@ -650,9 +653,9 @@ class DeformConvTester(OpTester, unittest.TestCase):
                 out.mean().backward()
                 if true_cpu_grads is None:
                     true_cpu_grads = init_weight.grad
-                    self.assertTrue(true_cpu_grads is not None)
+                    self.assertIsNotNone(true_cpu_grads)
                 else:
-                    self.assertTrue(init_weight.grad is not None)
+                    self.assertIsNotNone(init_weight.grad)
                     res_grads = init_weight.grad.to("cpu")
                     self.assertTrue(true_cpu_grads.allclose(res_grads))
 
@@ -735,17 +738,17 @@ class BoxTester(unittest.TestCase):
         box_same = ops.box_convert(box_tensor, in_fmt="xyxy", out_fmt="xyxy")
         self.assertEqual(exp_xyxy.size(), torch.Size([4, 4]))
         self.assertEqual(exp_xyxy.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_same, exp_xyxy)).item()
+        self.assertTrue(torch.all(torch.eq(box_same, exp_xyxy)).item())
 
         box_same = ops.box_convert(box_tensor, in_fmt="xywh", out_fmt="xywh")
         self.assertEqual(exp_xyxy.size(), torch.Size([4, 4]))
         self.assertEqual(exp_xyxy.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_same, exp_xyxy)).item()
+        self.assertTrue(torch.all(torch.eq(box_same, exp_xyxy)).item())
 
         box_same = ops.box_convert(box_tensor, in_fmt="cxcywh", out_fmt="cxcywh")
         self.assertEqual(exp_xyxy.size(), torch.Size([4, 4]))
         self.assertEqual(exp_xyxy.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_same, exp_xyxy)).item()
+        self.assertTrue(torch.all(torch.eq(box_same, exp_xyxy)).item())
 
     def test_bbox_xyxy_xywh(self):
         # Simple test convert boxes to xywh and back. Make sure they are same.
@@ -758,13 +761,13 @@ class BoxTester(unittest.TestCase):
         box_xywh = ops.box_convert(box_tensor, in_fmt="xyxy", out_fmt="xywh")
         self.assertEqual(exp_xywh.size(), torch.Size([4, 4]))
         self.assertEqual(exp_xywh.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_xywh, exp_xywh)).item()
+        self.assertTrue(torch.all(torch.eq(box_xywh, exp_xywh)).item())
 
         # Reverse conversion
         box_xyxy = ops.box_convert(box_xywh, in_fmt="xywh", out_fmt="xyxy")
         self.assertEqual(box_xyxy.size(), torch.Size([4, 4]))
         self.assertEqual(box_xyxy.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_xyxy, box_tensor)).item()
+        self.assertTrue(torch.all(torch.eq(box_xyxy, box_tensor)).item())
 
     def test_bbox_xyxy_cxcywh(self):
         # Simple test convert boxes to xywh and back. Make sure they are same.
@@ -777,13 +780,13 @@ class BoxTester(unittest.TestCase):
         box_cxcywh = ops.box_convert(box_tensor, in_fmt="xyxy", out_fmt="cxcywh")
         self.assertEqual(exp_cxcywh.size(), torch.Size([4, 4]))
         self.assertEqual(exp_cxcywh.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_cxcywh, exp_cxcywh)).item()
+        self.assertTrue(torch.all(torch.eq(box_cxcywh, exp_cxcywh)).item())
 
         # Reverse conversion
         box_xyxy = ops.box_convert(box_cxcywh, in_fmt="cxcywh", out_fmt="xyxy")
         self.assertEqual(box_xyxy.size(), torch.Size([4, 4]))
         self.assertEqual(box_xyxy.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_xyxy, box_tensor)).item()
+        self.assertTrue(torch.all(torch.eq(box_xyxy, box_tensor)).item())
 
     def test_bbox_xywh_cxcywh(self):
         box_tensor = torch.tensor([[0, 0, 100, 100], [0, 0, 0, 0],
@@ -796,13 +799,13 @@ class BoxTester(unittest.TestCase):
         box_cxcywh = ops.box_convert(box_tensor, in_fmt="xywh", out_fmt="cxcywh")
         self.assertEqual(exp_cxcywh.size(), torch.Size([4, 4]))
         self.assertEqual(exp_cxcywh.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_cxcywh, exp_cxcywh)).item()
+        self.assertTrue(torch.all(torch.eq(box_cxcywh, exp_cxcywh)).item())
 
         # Reverse conversion
         box_xywh = ops.box_convert(box_cxcywh, in_fmt="cxcywh", out_fmt="xywh")
         self.assertEqual(box_xywh.size(), torch.Size([4, 4]))
         self.assertEqual(box_xywh.dtype, box_tensor.dtype)
-        assert torch.all(torch.eq(box_xywh, box_tensor)).item()
+        self.assertTrue(torch.all(torch.eq(box_xywh, box_tensor)).item())
 
     def test_bbox_invalid(self):
         box_tensor = torch.tensor([[0, 0, 100, 100], [0, 0, 0, 0],
@@ -823,19 +826,19 @@ class BoxTester(unittest.TestCase):
 
         box_xywh = ops.box_convert(box_tensor, in_fmt="xyxy", out_fmt="xywh")
         scripted_xywh = scripted_fn(box_tensor, 'xyxy', 'xywh')
-        self.assertTrue((scripted_xywh - box_xywh).abs().max() < TOLERANCE)
+        self.assertLess((scripted_xywh - box_xywh).abs().max(), TOLERANCE)
 
         box_cxcywh = ops.box_convert(box_tensor, in_fmt="xyxy", out_fmt="cxcywh")
         scripted_cxcywh = scripted_fn(box_tensor, 'xyxy', 'cxcywh')
-        self.assertTrue((scripted_cxcywh - box_cxcywh).abs().max() < TOLERANCE)
+        self.assertLess((scripted_cxcywh - box_cxcywh).abs().max(), TOLERANCE)
 
 
 class BoxAreaTester(unittest.TestCase):
     def test_box_area(self):
         def area_check(box, expected, tolerance=1e-4):
             out = ops.box_area(box)
-            assert out.size() == expected.size()
-            assert ((out - expected).abs().max() < tolerance).item()
+            self.assertEqual(out.size(), expected.size())
+            self.assertLess((out - expected).abs().max(), tolerance)
 
         # Check for int boxes
         for dtype in [torch.int8, torch.int16, torch.int32, torch.int64]:
@@ -863,8 +866,8 @@ class BoxIouTester(unittest.TestCase):
     def test_iou(self):
         def iou_check(box, expected, tolerance=1e-4):
             out = ops.box_iou(box, box)
-            assert out.size() == expected.size()
-            assert ((out - expected).abs().max() < tolerance).item()
+            self.assertEqual(out.size(), expected.size())
+            self.assertLess((out - expected).abs().max(), tolerance)
 
         # Check for int boxes
         for dtype in [torch.int16, torch.int32, torch.int64]:
@@ -885,8 +888,8 @@ class GenBoxIouTester(unittest.TestCase):
     def test_gen_iou(self):
         def gen_iou_check(box, expected, tolerance=1e-4):
             out = ops.generalized_box_iou(box, box)
-            assert out.size() == expected.size()
-            assert ((out - expected).abs().max() < tolerance).item()
+            self.assertEqual(out.size(), expected.size())
+            self.assertLess((out - expected).abs().max(), tolerance)
 
         # Check for int boxes
         for dtype in [torch.int16, torch.int32, torch.int64]:

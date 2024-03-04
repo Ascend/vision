@@ -23,7 +23,9 @@ from setuptools import find_packages, setup
 from torch_npu.utils.cpp_extension import NpuExtension
 from torch.utils.cpp_extension import BuildExtension, CppExtension
 
+
 __vision__ = '0.12.0'
+
 
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))

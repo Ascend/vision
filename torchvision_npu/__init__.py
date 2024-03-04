@@ -22,6 +22,7 @@ from .transforms.functional import patch_transform_methods
 
 _image_backend = "npu"
 
+
 def set_image_backend(backend):
     """
     Specifies the package used to load images.
@@ -48,10 +49,12 @@ def patch_init_methods():
     torchvision.set_image_backend = set_image_backend
     torchvision.get_image_backend = get_image_backend
 
+
 def apply_class_patches():
     patch_init_methods()
     add_dataset_imagefolder()
     patch_transform_methods()
     patch_deform_conv()
+
 
 apply_class_patches()
