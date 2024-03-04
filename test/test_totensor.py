@@ -13,8 +13,8 @@
 # limitations under the License.
 import unittest
 import torch
-import torchvision_npu
 import torchvision.transforms as transforms
+import torchvision_npu
 
 
 class TestToTensor(unittest.TestCase):
