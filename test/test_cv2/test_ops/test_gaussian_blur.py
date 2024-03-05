@@ -45,3 +45,5 @@ def test_gaussian_blur(img_path, kernel_size, sigma):
     assert isinstance(pil_gaussian_blur, Image.Image) and isinstance(cv2_gaussian_blur, np.ndarray)
     assert pil_gaussian_blur.size == cv2_gaussian_blur.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_gaussian_blur, Image.fromarray(cv2_gaussian_blur))
+    
+    pil_img.close()

@@ -53,3 +53,5 @@ def test_random_apply(img_path, transforms, p):
     assert isinstance(pil_apply, Image.Image) and isinstance(cv2_apply, np.ndarray)
     assert pil_apply.size == cv2_apply.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_apply, Image.fromarray(cv2_apply))
+    
+    pil_img.close()

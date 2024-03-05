@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import random
 import numpy as np
 from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
-import random
 import torchvision_npu
 
 
@@ -57,3 +57,5 @@ def test_compose(img_path, transforms):
     assert isinstance(pil_order, Image.Image) and isinstance(cv2_order, np.ndarray)
     assert pil_order.size == cv2_order.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_order, Image.fromarray(cv2_order))
+    
+    pil_img.close()

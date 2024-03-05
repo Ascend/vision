@@ -47,3 +47,5 @@ def test_posterize(img_path, bit, p):
     assert isinstance(pil_posterize, Image.Image) and isinstance(cv2_posterize, np.ndarray)
     assert pil_posterize.size == cv2_posterize.shape[:2][::-1]
     assert (np.array(pil_posterize) == cv2_posterize).all()
+    
+    pil_img.close()

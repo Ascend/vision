@@ -57,7 +57,9 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
         if isinstance(size, Sequence):
             size = size[0]
         h, w = img.shape[:2]
-        if (w <= h and w == size) or (h <= w and h == size):
+        case_for_w = (w <= h and w == size)
+        case_for_h = (h <= w and h == size)
+        if case_for_w or case_for_h:
             return img
         if w < h:
             ow = size
@@ -104,7 +106,8 @@ def crop(img, top, left, height, width):
 
 def pad(img, padding, fill, padding_mode):
     if isinstance(fill, tuple):
-        assert len(fill) == img.shape[-1]
+        if len(fill) != img.shape[-1]:
+            raise ValueError("len(fill) do not equal to img.shape[-1].")
 
     # check fill
     elif not isinstance(fill, numbers.Number):
@@ -124,7 +127,8 @@ def pad(img, padding, fill, padding_mode):
                          f'But received {padding}')
 
     # check padding mode
-    assert padding_mode in ['constant', 'edge', 'reflect', 'symmetric']
+    if padding_mode not in ['constant', 'edge', 'reflect', 'symmetric']:
+        raise TypeError("padding_mode must be 'constant', 'edge', 'reflect', or 'symmetric'.")
 
     border_type = {
         'constant': cv2.BORDER_CONSTANT,
@@ -132,7 +136,7 @@ def pad(img, padding, fill, padding_mode):
         'reflect': cv2.BORDER_REFLECT_101,
         'symmetric': cv2.BORDER_REFLECT
     }
-    img = cv2.copyMakeBorder(img, padding[1], padding[3], padding[0], padding[2], border_type[padding_mode], value=fill)
+    img = cv2.copyMakeBorder(img, padding[1], padding[3], padding[0], padding[2], border_type.get(padding_mode), value=fill)
 
     return img
 
@@ -356,10 +360,10 @@ def solarize(img, threshold=128):
 
 def adjust_sharpness(img, factor=1.):
     kernel = np.array([[1., 1., 1.], [1., 5., 1.], [1., 1., 1.]]) / 13
-    assert isinstance(kernel, np.ndarray), \
-        f'kernel must be of type np.ndarray, but got {type(kernel)} instead.'
-    assert kernel.ndim == 2, \
-        f'kernel must have a dimension of 2, but got {kernel.ndim} instead.'
+    if not isinstance(kernel, np.ndarray):
+        raise TypeError(f'kernel must be of type np.ndarray, but got {type(kernel)} instead.')
+    if kernel.ndim != 2:
+        raise ValueError(f'kernel must have a dimension of 2, but got {kernel.ndim} instead.')
 
     degenerated = cv2.filter2D(img, -1, kernel)
     sharpened_img = cv2.addWeighted(

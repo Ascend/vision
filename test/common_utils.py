@@ -6,34 +6,21 @@ import unittest
 import argparse
 import sys
 import io
-import torch
 import warnings
-import __main__
 import random
-
-from numbers import Number
-from torch._six import string_classes
 from collections import OrderedDict
-from _utils_internal import get_relative_path
+from numbers import Number
 
-import numpy as np
 from PIL import Image
+import __main__
+import numpy as np
+import torch
+from torch._six import string_classes
+from _utils_internal import get_relative_path
 
 IS_PY39 = sys.version_info.major == 3 and sys.version_info.minor == 9
 PY39_SEGFAULT_SKIP_MSG = "Segmentation fault with Python 3.9, see the 3367 issue of pytorch vision."
 PY39_SKIP = unittest.skipIf(IS_PY39, PY39_SEGFAULT_SKIP_MSG)
-
-
-@contextlib.contextmanager
-def get_tmp_dir(src=None, **kwargs):
-    tmp_dir = tempfile.mkdtemp(**kwargs)
-    if src is not None:
-        os.rmdir(tmp_dir)
-        shutil.copytree(src, tmp_dir)
-    try:
-        yield tmp_dir
-    finally:
-        shutil.rmtree(tmp_dir)
 
 
 def set_rng_seed(seed):
@@ -61,29 +48,29 @@ class MapNestedTensorObjectImpl(object):
     def __init__(self, tensor_map_fn):
         self.tensor_map_fn = tensor_map_fn
 
-    def __call__(self, object):
-        if isinstance(object, torch.Tensor):
-            return self.tensor_map_fn(object)
+    def __call__(self, obj):
+        if isinstance(obj, torch.Tensor):
+            return self.tensor_map_fn(obj)
 
-        elif isinstance(object, dict):
+        elif isinstance(obj, dict):
             mapped_dict = {}
-            for key, value in object.items():
+            for key, value in obj.items():
                 mapped_dict[self(key)] = self(value)
             return mapped_dict
 
-        elif isinstance(object, (list, tuple)):
+        elif isinstance(obj, (list, tuple)):
             mapped_iter = []
-            for iter in object:
-                mapped_iter.append(self(iter))
-            return mapped_iter if not isinstance(object, tuple) else tuple(mapped_iter)
+            for item in obj:
+                mapped_iter.append(self(item))
+            return mapped_iter if not isinstance(obj, tuple) else tuple(mapped_iter)
 
         else:
-            return object
+            return obj
 
 
-def map_nested_tensor_object(object, tensor_map_fn):
+def map_nested_tensor_object(obj, tensor_map_fn):
     impl = MapNestedTensorObjectImpl(tensor_map_fn)
-    return impl(object)
+    return impl(obj)
 
 
 def is_iterable(obj):
@@ -114,7 +101,7 @@ class TestCase(unittest.TestCase):
 
         # Determine expected file based on environment
         expected_file_base = get_relative_path(
-            os.path.realpath(sys.modules[module_id].__file__),
+            os.path.realpath(sys.modules.get(module_id).__file__),
             "expect")
 
         # Set expected_file based on subname.
@@ -209,7 +196,7 @@ class TestCase(unittest.TestCase):
                                 inf_sign = inf_mask.sign()
                                 self.assertTrue(torch.equal(inf_sign, torch.isinf(b).sign()), message)
                                 diff[inf_mask] = 0
-                        # TODO: implement abs on CharTensor (int8)
+
                         if diff.is_signed() and diff.dtype != torch.int8:
                             diff = diff.abs()
                         max_err = diff.max()
@@ -280,7 +267,7 @@ class TestCase(unittest.TestCase):
         else:
             super(TestCase, self).assertEqual(x, y, message)
 
-    def check_jit_scriptable(self, nn_module, args, unwrapper=None, skip=False):
+    def check_jit_scriptable(self, nn_module, fn_args, unwrapper=None, skip=False):
         """
         Check that a nn.Module's results in TorchScript match eager and that it
         can be exported
@@ -299,15 +286,15 @@ class TestCase(unittest.TestCase):
         sm = torch.jit.script(nn_module)
 
         with freeze_rng_state():
-            eager_out = nn_module(*args)
+            eager_out = nn_module(*fn_args)
 
         with freeze_rng_state():
-            script_out = sm(*args)
+            script_out = sm(*fn_args)
             if unwrapper:
                 script_out = unwrapper(script_out)
 
         self.assertEqual(eager_out, script_out, prec=1e-4)
-        self.assertExportImportModule(sm, args)
+        self.assertExportImportModule(sm, fn_args)
 
         return sm
 
@@ -321,15 +308,15 @@ class TestCase(unittest.TestCase):
         imported = torch.jit.load(buffer)
         return imported
 
-    def assertExportImportModule(self, m, args):
+    def assertExportImportModule(self, m, fn_args):
         """
         Check that the results of a model are the same after saving and loading
         """
         m_import = self.getExportImportCopy(m)
         with freeze_rng_state():
-            results = m(*args)
+            results = m(*fn_args)
         with freeze_rng_state():
-            results_from_imported = m_import(*args)
+            results_from_imported = m_import(*fn_args)
         self.assertEqual(results, results_from_imported)
 
 
@@ -376,8 +363,8 @@ class TransformsTester(unittest.TestCase):
         pil_tensor = torch.as_tensor(np_pil_image.transpose((2, 0, 1))).to(tensor)
         # error value can be mean absolute error, max abs error
         err = getattr(torch, agg_method)(torch.abs(tensor - pil_tensor)).item()
-        self.assertTrue(
-            err < tol,
+        self.assertLess(
+            err, tol,
             msg="{}: err={}, tol={}: \n{}\nvs\n{}".format(msg, err, tol, tensor[0, :10, :10], pil_tensor[0, :10, :10])
         )
 
@@ -393,11 +380,3 @@ def int_dtypes():
 
 def float_dtypes():
     return torch.testing.floating_types()
-
-
-@contextlib.contextmanager
-def disable_console_output():
-    with contextlib.ExitStack() as stack, open(os.devnull, "w") as devnull:
-        stack.enter_context(contextlib.redirect_stdout(devnull))
-        stack.enter_context(contextlib.redirect_stderr(devnull))
-        yield

@@ -6,7 +6,7 @@ namespace vision {
 namespace ops {
 
 TORCH_LIBRARY_FRAGMENT(torchvision, m) {
-  m.def(TORCH_SELECTIVE_SCHEMA(
+    m.def(TORCH_SELECTIVE_SCHEMA(
         "torchvision::_gaussian_blur_aclop(Tensor self, int[] kernel_size, float[]? sigma, \
         str padding_mode=\"constant\") -> Tensor"));
     m.def(TORCH_SELECTIVE_SCHEMA(

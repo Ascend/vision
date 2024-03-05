@@ -15,9 +15,9 @@
 import numpy as np
 from PIL import Image
 import pytest
-import torchvision_npu
 import torch
 from torchvision import transforms as trans
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -38,3 +38,5 @@ def test_2pil(img_path):
     cv2_topil = trans.ToPILImage()(cv2_img)
 
     assert isinstance(cv2_topil, Image.Image)
+    
+    pil_img.close()

@@ -47,6 +47,8 @@ def test_vfilp(img_path, p):
     assert isinstance(pil_vflip, Image.Image) and isinstance(cv2_vflip, np.ndarray)
     assert pil_vflip.size == cv2_vflip.shape[:2][::-1]
     assert (np.array(pil_vflip) == cv2_vflip).all()
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -76,3 +78,5 @@ def test_hfilp(img_path, p):
     assert isinstance(pil_hflip, Image.Image) and isinstance(cv2_hflip, np.ndarray)
     assert pil_hflip.size == cv2_hflip.shape[:2][::-1]
     assert (np.array(pil_hflip) == cv2_hflip).all()
+    
+    pil_img.close()

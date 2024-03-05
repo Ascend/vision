@@ -19,6 +19,7 @@ import torch
 from torchvision import transforms as trans
 import torchvision_npu
 
+
 @pytest.mark.parametrize(
     ["img_path", "p"],
     [
@@ -46,3 +47,5 @@ def test_autocontrast(img_path, p):
     assert isinstance(pil_autocontrast, Image.Image) and isinstance(cv2_autocontrast, np.ndarray)
     assert pil_autocontrast.size == cv2_autocontrast.shape[:2][::-1]
     assert (np.array(pil_autocontrast) == cv2_autocontrast).all()
+    
+    pil_img.close()

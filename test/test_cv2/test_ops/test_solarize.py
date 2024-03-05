@@ -47,3 +47,5 @@ def test_solarize(img_path, threshold, p):
     assert isinstance(pil_solarize, Image.Image) and isinstance(cv2_solarize, np.ndarray)
     assert pil_solarize.size == cv2_solarize.shape[:2][::-1]
     assert (np.array(pil_solarize) == cv2_solarize).all()
+    
+    pil_img.close()

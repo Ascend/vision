@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import argparse
+import os
+import time
 
 import PIL.Image
 import numpy as np
-import os
 import psutil
 import setproctitle
 
-import time
 import torch
 import torch_npu
 from torch_npu.contrib import transfer_to_npu
@@ -184,7 +184,7 @@ def train(args, epoch, net, train_loader, optimizer):
 
 def build_SGD(parameters, lr, momentum, weight_decay, nesterov=False):
     bn_params = [v for n, v in parameters if 'bn' in n]
-    rest_params = [v for n, v in parameters if not 'bn' in n]
+    rest_params = [v for n, v in parameters if 'bn' not in n]
     optimizer = torch.optim.SGD(
         [{'params': bn_params, 'weight_decay': 0},
          {'params': rest_params, 'weight_decay': weight_decay}],

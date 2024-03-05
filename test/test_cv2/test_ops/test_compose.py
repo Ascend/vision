@@ -14,11 +14,11 @@
 
 from PIL import Image
 import pytest
+import numpy as np
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
 import torchvision_npu
-import numpy as np
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,5 @@ def test_compose(img_path, transforms):
         assert isinstance(pil_compose, Image.Image) and isinstance(cv2_compose, np.ndarray)
         assert pil_compose.size == cv2_compose.shape[:2][::-1]
         assert image_similarity_vectors_via_cos(pil_compose, Image.fromarray(cv2_compose))
+    
+    pil_img.close()

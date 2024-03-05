@@ -47,3 +47,5 @@ def test_invert(img_path, p):
     assert isinstance(pil_invert, Image.Image) and isinstance(cv2_invert, np.ndarray)
     assert pil_invert.size == cv2_invert.shape[:2][::-1]
     assert (np.array(pil_invert) == cv2_invert).all()
+    
+    pil_img.close()

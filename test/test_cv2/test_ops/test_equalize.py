@@ -49,3 +49,5 @@ def test_equalize(img_path, p):
     assert isinstance(pil_equalize, Image.Image) and isinstance(cv2_equalize, np.ndarray)
     assert pil_equalize.size == cv2_equalize.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_equalize, Image.fromarray(cv2_equalize))
+    
+    pil_img.close()

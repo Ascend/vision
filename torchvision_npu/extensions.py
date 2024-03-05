@@ -14,6 +14,7 @@
 
 _HAS_OPS = False
 
+
 def _has_ops():
     return False
 

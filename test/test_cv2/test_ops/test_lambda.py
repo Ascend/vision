@@ -51,3 +51,5 @@ def test_lambda(img_path):
     cv2_lambda = trans.Lambda(lambda img: custom_crop(cv2_img, (5, 5), 224)),
 
     assert type(pil_lambda) == type(cv2_lambda)
+    
+    pil_img.close()

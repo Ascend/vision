@@ -44,3 +44,5 @@ def test_pil2tensor(img_path):
     assert type(pil_totensor) == type(cv2_totensor)
     assert pil_totensor.shape == cv2_totensor.shape
     assert (np.array(pil_totensor) == np.array(cv2_totensor)).all()
+    
+    pil_img.close()

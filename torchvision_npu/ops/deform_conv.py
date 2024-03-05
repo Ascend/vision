@@ -1,4 +1,5 @@
 import math
+from typing import Optional, Tuple
 
 import torch
 import torch_npu
@@ -7,11 +8,11 @@ from torch import nn, Tensor
 from torch.nn import init
 from torch.nn.parameter import Parameter
 from torch.nn.modules.utils import _pair
-from typing import Optional, Tuple
 from torchvision.extension import _assert_has_ops
 
+
 def deform_conv2d(
-    input: Tensor,
+    inputs: Tensor,
     offset: Tensor,
     weight: Tensor,
     bias: Optional[Tensor] = None,
@@ -27,7 +28,7 @@ def deform_conv2d(
     use_mask = mask is not None
 
     if mask is None:
-        mask = torch.zeros((input.shape[0], 0), device=input.device, dtype=input.dtype)
+        mask = torch.zeros((inputs.shape[0], 0), device=inputs.device, dtype=inputs.dtype)
 
     if bias is None:
         bias = torch.zeros(out_channels, device=input.device, dtype=input.dtype)
@@ -36,7 +37,7 @@ def deform_conv2d(
     pad_h, pad_w = _pair(padding)
     dil_h, dil_w = _pair(dilation)
     weights_h, weights_w = weight.shape[-2:]
-    _, n_in_channels, in_h, in_w = input.shape
+    _, n_in_channels, in_h, in_w = inputs.shape
 
     n_offset_grps = offset.shape[1] // (2 * weights_h * weights_w)
     n_weight_grps = n_in_channels // weight.shape[1]
@@ -48,9 +49,9 @@ def deform_conv2d(
             "Got offset.shape[1]={}, while 2 * weight.size[2] * weight.size[3]={}".format(
                 offset.shape[1], 2 * weights_h * weights_w))
 
-    if not input.is_npu:
+    if not inputs.is_npu:
         return torch.ops.torchvision.deform_conv2d(
-            input,
+            inputs,
             weight,
             offset,
             mask,
@@ -63,7 +64,7 @@ def deform_conv2d(
             use_mask,)
     else:
         return npu_deform_conv2d(
-            input,
+            inputs,
             offset,
             weight,
             bias,
@@ -75,8 +76,9 @@ def deform_conv2d(
             n_offset_grps
         )
 
+
 def npu_deform_conv2d(
-        input: Tensor,
+        inputs: Tensor,
         offset: Tensor,
         weight: Tensor,
         bias: Optional[Tensor] = None,
@@ -93,15 +95,15 @@ def npu_deform_conv2d(
     select_offset = offset.index_select(1, sort_index_fp)
     if mask is None:
         mask_shape, _ = torch.chunk(offset, 2, dim=1)
-        mask = torch.ones_like(mask_shape).to(input.device)
+        mask = torch.ones_like(mask_shape).to(inputs.device)
     offset_all = torch.cat([select_offset, mask], dim=1)
     output, offset_out = torch.npu_deformable_conv2d(
-        input,
+        inputs,
         weight,
         offset_all,
         conv2d_bias,
         kernel_size=[kernel_h, kernel_w],
-        stride=[1, 1, stride[0],stride[1]],
+        stride=[1, 1, stride[0], stride[1]],
         padding=[padding[0], padding[0], padding[1], padding[1]],
         dilation=[1, 1, dilation[0], dilation[1]],
         groups=groups,

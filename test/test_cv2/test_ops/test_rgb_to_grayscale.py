@@ -46,6 +46,8 @@ def test_grayscale(img_path, num_out_channels):
     assert isinstance(pil_grayscale, Image.Image) and isinstance(cv2_grayscale, np.ndarray)
     assert pil_grayscale.size == cv2_grayscale.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_grayscale, Image.fromarray(cv2_grayscale))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -75,3 +77,5 @@ def test_random_grayscale(img_path, num_out_channels):
     assert isinstance(pil_grayscale, Image.Image) and isinstance(cv2_grayscale, np.ndarray)
     assert pil_grayscale.size == cv2_grayscale.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_grayscale, Image.fromarray(cv2_grayscale))
+    
+    pil_img.close()

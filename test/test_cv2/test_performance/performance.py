@@ -15,11 +15,13 @@ import timeit
 
 import numpy as np
 import torch
+import cv2
 import torchvision.datasets
 from PIL import Image
-import torchvision_npu
 from torchvision import transforms
-import cv2
+
+import torchvision_npu
+
 
 import_module = "from torchvision import transforms; " \
                 "from __main__ import pil_img, cv2_img, test_data, pil_load, cv2_load, pil_trans_np"
@@ -206,9 +208,10 @@ def compare_cv2_pil_ops():
 
 def pil_load():
     img = Image.open(test_data)
-    img = img.convert('RGB')
-    img = transforms.Resize((224, 224))(img)
-    return img
+    img_rgb = img.convert('RGB')
+    img_rgb = transforms.Resize((224, 224))(img_rgb)
+    img.close()
+    return img_rgb
 
 
 def cv2_load():
@@ -220,22 +223,27 @@ def cv2_load():
 
 def pil_trans_np():
     img = Image.open(test_data)
-    img = img.convert('RGB')
-    img = np.asarray(img)
-    img = cv2.resize(img, dsize=(224, 224), interpolation=cv2.INTER_CUBIC)
-    return img
+    img_rgb = img.convert('RGB')
+    img_rgb = np.asarray(img_rgb)
+    img_rgb = cv2.resize(img_rgb, dsize=(224, 224), interpolation=cv2.INTER_CUBIC)
+    img.close()
+    return img_rgb
 
 
 def compare_cv2_pil_load():
-    pil_load = timeit.repeat('pil_load()', setup=import_module, number=1000, repeat=5)
-    cv2_load = timeit.repeat('cv2_load()', setup=import_module, number=1000, repeat=5)
-    pil_trans = timeit.repeat('pil_trans_np()', setup=import_module, number=1000, repeat=5)
+    pil_load_time = timeit.repeat('pil_load()', setup=import_module, number=1000, repeat=5)
+    cv2_load_time = timeit.repeat('cv2_load()', setup=import_module, number=1000, repeat=5)
+    pil_trans_time = timeit.repeat('pil_trans_np()', setup=import_module, number=1000, repeat=5)
 
-    print('min time for pil loader', min(pil_load))
-    print('min time for cv2 loader', min(cv2_load))
-    print('min time for pil trans loader', min(pil_trans))
+    print('min time for pil loader', min(pil_load_time))
+    print('min time for cv2 loader', min(cv2_load_time))
+    print('min time for pil trans loader', min(pil_trans_time))
 
-    assert min(cv2_load) > min(pil_trans)
+    if min(cv2_load_time) < min(pil_trans_time):
+        raise RuntimeError("cv2 load time shorter than pil trans time.")
+
+
+pil_img.close()
 
 
 if __name__ == "__main__":

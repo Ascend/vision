@@ -18,8 +18,9 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
-import torchvision_npu
 from test_cv2_utils import image_similarity_vectors_via_cos
+
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -52,6 +53,8 @@ def test_crop(img_path, size, padding, pad_if_need, fill, padding_mode):
     assert isinstance(pil_crop, Image.Image) and isinstance(cv2_crop, np.ndarray)
     assert pil_crop.size == cv2_crop.shape[:2][::-1]
     assert (np.array(pil_crop) == cv2_crop).all()
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -81,6 +84,8 @@ def test_center_crop(img_path, size):
     assert isinstance(pil_center_crop, Image.Image) and isinstance(cv2_center_crop, np.ndarray)
     assert pil_center_crop.size == cv2_center_crop.shape[:2][::-1]
     assert (np.array(pil_center_crop) == cv2_center_crop).all()
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -112,6 +117,8 @@ def test_resized_crop(img_path, size, scale, ratio, interpolation):
     assert isinstance(pil_resized_crop, Image.Image) and isinstance(cv2_resized_crop, np.ndarray)
     assert pil_resized_crop.size == cv2_resized_crop.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_resized_crop, Image.fromarray(cv2_resized_crop))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -143,6 +150,8 @@ def test_sized_crop(img_path, size, scale, ratio, interpolation):
     assert isinstance(pil_resized_crop, Image.Image) and isinstance(cv2_resized_crop, np.ndarray)
     assert pil_resized_crop.size == cv2_resized_crop.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_resized_crop, Image.fromarray(cv2_resized_crop))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -173,6 +182,8 @@ def test_five_crop(img_path, size):
         assert isinstance(pil_crop_img, Image.Image) and isinstance(cv2_crop_img, np.ndarray)
         assert pil_crop_img.size == cv2_crop_img.shape[:2][::-1]
         assert (np.array(pil_crop_img) == cv2_crop_img).all()
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -203,3 +214,5 @@ def test_ten_crop(img_path, size):
         assert isinstance(pil_crop_img, Image.Image) and isinstance(cv2_crop_img, np.ndarray)
         assert pil_crop_img.size == cv2_crop_img.shape[:2][::-1]
         assert (np.array(pil_crop_img) == cv2_crop_img).all()
+    
+    pil_img.close()

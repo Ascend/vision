@@ -47,3 +47,5 @@ def test_pad(img_path, padding, fill, padding_mode):
     assert isinstance(pil_pad, Image.Image) and isinstance(cv2_pad, np.ndarray)
     assert pil_pad.size == cv2_pad.shape[:2][::-1]
     assert (np.array(pil_pad) == cv2_pad).all()
+    
+    pil_img.close()

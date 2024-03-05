@@ -53,6 +53,8 @@ def test_rotate_degree(img_path, degree, interpolation, expand, center, fill):
     assert isinstance(pil_rotate, Image.Image) and isinstance(cv2_rotate, np.ndarray)
     assert pil_rotate.size == cv2_rotate.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_rotate, Image.fromarray(cv2_rotate))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -80,3 +82,5 @@ def test_rotate_interpolation(img_path, interpolation):
     assert isinstance(pil_rotate, Image.Image) and isinstance(cv2_rotate, np.ndarray)
     assert pil_rotate.size == cv2_rotate.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_rotate, Image.fromarray(cv2_rotate))
+    
+    pil_img.close()

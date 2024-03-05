@@ -121,8 +121,9 @@ class DatasetFolder(fold.DatasetFolder):
 def _cv2_loader(path: str) -> Any:
     with open(path, 'rb') as f:
         img = Image.open(f)
-        img = img.convert('RGB')
-        return np.asarray(img)
+        img_rgb = img.convert('RGB')
+        img.close()
+        return np.asarray(img_rgb)
 
 
 def _npu_loader(path: str) -> Any:

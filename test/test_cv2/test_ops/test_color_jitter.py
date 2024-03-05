@@ -14,11 +14,11 @@
 
 from PIL import Image
 import pytest
+import numpy as np
 import torch
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
 import torchvision_npu
-import numpy as np
 
 
 @pytest.mark.parametrize(
@@ -50,3 +50,5 @@ def test_color_jitter(img_path, brightness, contrast, saturation, hue):
     assert isinstance(pil_brightness, Image.Image) and isinstance(cv2_brightness, np.ndarray)
     assert pil_brightness.size == cv2_brightness.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_brightness, Image.fromarray(cv2_brightness))
+    
+    pil_img.close()

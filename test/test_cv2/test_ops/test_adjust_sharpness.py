@@ -17,8 +17,8 @@ from PIL import Image
 import pytest
 import torch
 from torchvision import transforms as trans
-import torchvision_npu
 from test_cv2_utils import image_similarity_vectors_via_cos
+import torchvision_npu
 
 
 @pytest.mark.parametrize(
@@ -48,3 +48,5 @@ def test_adjustSharpness(img_path, sharpness_factor, p):
     assert isinstance(pil_adjustSharpness, Image.Image) and isinstance(cv2_adjustSharpness, np.ndarray)
     assert pil_adjustSharpness.size == cv2_adjustSharpness.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_adjustSharpness, Image.fromarray(cv2_adjustSharpness))
+    
+    pil_img.close()

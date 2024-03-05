@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import timeit
+import time
 
 import numpy as np
 import torch
 import torchvision.datasets
 from torchvision import transforms
-import time
-import torchvision_npu
 from PIL import Image
+
+import torchvision_npu
+
 
 IMAGENET_PATH = "./test/Data/"
 IMAGE_SIZE = 224

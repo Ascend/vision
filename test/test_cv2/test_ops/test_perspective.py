@@ -51,3 +51,5 @@ def test_perspective(img_path, distortion_scale, p, interpolation, fill):
     assert isinstance(pil_perspective, Image.Image) and isinstance(cv2_perspective, np.ndarray)
     assert pil_perspective.size == cv2_perspective.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_perspective, Image.fromarray(cv2_perspective))
+    
+    pil_img.close()

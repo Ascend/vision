@@ -46,6 +46,8 @@ def test_resize_shape(img_path, size, interpolation):
     assert isinstance(pil_resize, Image.Image) and isinstance(cv2_resize, np.ndarray)
     assert pil_resize.size == cv2_resize.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_resize, Image.fromarray(cv2_resize))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -72,6 +74,8 @@ def test_resize_interpolation(img_path, interpolation):
     assert isinstance(pil_resize, Image.Image) and isinstance(cv2_resize, np.ndarray)
     assert pil_resize.size == cv2_resize.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_resize, Image.fromarray(cv2_resize))
+    
+    pil_img.close()
 
 
 @pytest.mark.parametrize(
@@ -98,3 +102,5 @@ def test_scale(img_path, size, interpolation):
     assert isinstance(pil_resize, Image.Image) and isinstance(cv2_resize, np.ndarray)
     assert pil_resize.size == cv2_resize.shape[:2][::-1]
     assert image_similarity_vectors_via_cos(pil_resize, Image.fromarray(cv2_resize))
+    
+    pil_img.close()
