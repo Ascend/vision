@@ -20,8 +20,8 @@ def i8(c):
     return c if c.__class__ is int else c[0]
 
 
-def i16(c, o=0):
-    return unpack_from(">H", c, o)[0]
+def i16(c, n=0):
+    return unpack_from(">H", c, n)[0]
 
 
 def skip(fp):

@@ -8,11 +8,11 @@ import sys
 import io
 from collections import OrderedDict
 import warnings
-import __main__
 import random
-
 from numbers import Number
+
 import numpy as np
+import __main__
 from PIL import Image
 from _utils_internal import get_relative_path
 from torch._six import string_classes

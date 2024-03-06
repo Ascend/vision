@@ -106,7 +106,6 @@ at::Tensor roi_align_forward_kernel(
 
     at::Tensor output = at::zeros(
         {num_rois, channels, pooled_height, pooled_width}, input.options());
-
     if (output.numel() == 0)
         return output;
 

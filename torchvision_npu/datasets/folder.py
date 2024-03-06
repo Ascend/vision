@@ -37,6 +37,7 @@ def default_loader(path: str) -> Any:
     else:
         return fold.pil_loader(path)
 
+
 def npu_loader(path:str) -> Any:
     with open(path, "rb") as f:
         f.seek(0)

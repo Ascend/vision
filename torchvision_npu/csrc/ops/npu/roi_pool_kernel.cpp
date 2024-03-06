@@ -37,25 +37,24 @@ void roi_pool_forward_kernel_impl(
     at::Tensor& output,
     at::Tensor& argmax)
 {
-  int64_t pooled_height_64 = pooled_height;
-  int64_t pooled_width_64 = pooled_width;
-  int64_t pooled_channel = 1;
-  at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
+    int64_t pooled_height_64 = pooled_height;
+    int64_t pooled_width_64 = pooled_width;
+    int64_t pooled_channel = 1;
+    at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
 
-  at_npu::native::OpCommand cmd;
-  cmd.Name("RoiPoolingWithArgMax")
-      .Input(input)
-      .Input(rois)
-      .Input(roi_actual_num)
-      .Output(output)
-      .Output(argmax)
-      .Attr("pooled_h", pooled_height_64)
-      .Attr("pooled_w", pooled_width_64)
-      .Attr("spatial_scale_h", spatial_scale)
-      .Attr("spatial_scale_w", spatial_scale)
-      .Attr("pool_channel", pooled_channel)
-      .Run();
-
+    at_npu::native::OpCommand cmd;
+    cmd.Name("RoiPoolingWithArgMax")
+        .Input(input)
+        .Input(rois)
+        .Input(roi_actual_num)
+        .Output(output)
+        .Output(argmax)
+        .Attr("pooled_h", pooled_height_64)
+        .Attr("pooled_w", pooled_width_64)
+        .Attr("spatial_scale_h", spatial_scale)
+        .Attr("spatial_scale_w", spatial_scale)
+        .Attr("pool_channel", pooled_channel)
+        .Run();
 }
 
 template <typename T>
@@ -73,25 +72,25 @@ void roi_pool_backward_kernel_impl(
     int pooled_width,
     const at::Tensor& rois)
 {
-  int64_t pooled_height_64 = pooled_height;
-  int64_t pooled_width_64 = pooled_width;
-  int64_t pooled_channel = 1;
-  at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
+    int64_t pooled_height_64 = pooled_height;
+    int64_t pooled_width_64 = pooled_width;
+    int64_t pooled_channel = 1;
+    at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
 
-  at_npu::native::OpCommand cmd;
-  cmd.Name("RoiPoolingGradWithArgMax")
-      .Input(grad)
-      .Input(input)
-      .Input(rois)
-      .Input(roi_actual_num)
-      .Input(argmax)
-      .Output(output)
-      .Attr("pooled_h", pooled_height_64)
-      .Attr("pooled_w", pooled_width_64)
-      .Attr("spatial_scale_h", spatial_scale)
-      .Attr("spatial_scale_w", spatial_scale)
-      .Attr("pool_channel", pooled_channel)
-      .Run();
+    at_npu::native::OpCommand cmd;
+    cmd.Name("RoiPoolingGradWithArgMax")
+        .Input(grad)
+        .Input(input)
+        .Input(rois)
+        .Input(roi_actual_num)
+        .Input(argmax)
+        .Output(output)
+        .Attr("pooled_h", pooled_height_64)
+        .Attr("pooled_w", pooled_width_64)
+        .Attr("spatial_scale_h", spatial_scale)
+        .Attr("spatial_scale_w", spatial_scale)
+        .Attr("pool_channel", pooled_channel)
+        .Run();
 }
 
 std::tuple<at::Tensor, at::Tensor> roi_pool_forward_kernel(
@@ -198,12 +197,12 @@ at::Tensor roi_pool_backward_kernel(
 } // namespace
 
 TORCH_LIBRARY_IMPL(torchvision, XLA, m) {
-  m.impl(
-      TORCH_SELECTIVE_NAME("torchvision::roi_pool"),
-      TORCH_FN(roi_pool_forward_kernel));
-  m.impl(
-      TORCH_SELECTIVE_NAME("torchvision::_roi_pool_backward"),
-      TORCH_FN(roi_pool_backward_kernel));
+    m.impl(
+        TORCH_SELECTIVE_NAME("torchvision::roi_pool"),
+        TORCH_FN(roi_pool_forward_kernel));
+    m.impl(
+        TORCH_SELECTIVE_NAME("torchvision::_roi_pool_backward"),
+        TORCH_FN(roi_pool_backward_kernel));
 }
 
 } // namespace ops
