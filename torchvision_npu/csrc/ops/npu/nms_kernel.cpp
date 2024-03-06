@@ -37,13 +37,13 @@ at::Tensor nms_kernel_impl(
     at::Tensor output = at::empty(outputsize, boxes.options().dtype(at::kInt)).fill_(-1);
     at_npu::native::OpCommand cmd;
     cmd.Name("NonMaxSuppressionV3")
-      .Input(boxes)
-      .Input(scores)
-      .Input(max_outputsize_y)
-      .Input(iou_threshold_y)
-      .Input(scores_threshold_y)
-      .Output(output)
-      .Run();
+        .Input(boxes)
+        .Input(scores)
+        .Input(max_outputsize_y)
+        .Input(iou_threshold_y)
+        .Input(scores_threshold_y)
+        .Output(output)
+        .Run();
     auto outputsizeBool = at::gt(output, -1);
     auto outputsizeInt = outputsizeBool.to(at::ScalarType::Int);
     auto countLen = at::sum(outputsizeInt, at::ScalarType::Int);

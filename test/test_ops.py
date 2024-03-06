@@ -123,13 +123,13 @@ class RoIOpTester(OpTester):
             ops.roi_pool(a, [boxes], output_size=(2, 2))
 
     def fn(*args, **kwargs):
-        pass
+        return 0
 
     def get_script_fn(*args, **kwargs):
-        pass
+        return 0
 
     def expected_fn(*args, **kwargs):
-        pass
+        return 0
 
     @unittest.skipIf(not torch.npu.is_available(), "npu unavailable")
     def test_autocast(self):

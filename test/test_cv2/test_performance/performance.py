@@ -162,9 +162,6 @@ test_samples = {
 
 test_data = "./test/Data/dog/dog.0001.jpg"
 
-pil_img = Image.open(test_data)
-cv2_img = np.asarray(pil_img)
-
 
 def pil_ops_performance(pil_ops, loop):
     torchvision_npu.set_image_backend("PIL")
@@ -241,9 +238,6 @@ def compare_cv2_pil_load():
 
     if min(cv2_load_time) < min(pil_trans_time):
         raise RuntimeError("cv2 load time shorter than pil trans time.")
-
-
-pil_img.close()
 
 
 if __name__ == "__main__":
