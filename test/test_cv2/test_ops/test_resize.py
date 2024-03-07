@@ -35,11 +35,11 @@ def test_resize_shape(img_path, size, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil resize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_resize = trans.Resize(size=size, interpolation=interpolation)(pil_img)
 
     # using cv2 resize
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_resize = trans.Resize(size=size, interpolation=interpolation)(cv2_img)
 
@@ -63,11 +63,11 @@ def test_resize_interpolation(img_path, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil resize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_resize = trans.Resize((224, 224), interpolation=interpolation)(pil_img)
 
     # using cv2 resize
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_resize = trans.Resize((224, 224), interpolation=interpolation)(cv2_img)
 
@@ -91,11 +91,11 @@ def test_scale(img_path, size, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil resize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_resize = trans.Resize(size=size, interpolation=interpolation)(pil_img)
 
     # using cv2 resize
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_resize = trans.Resize(size=size, interpolation=interpolation)(cv2_img)
 

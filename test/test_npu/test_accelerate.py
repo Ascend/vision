@@ -9,14 +9,14 @@ torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 class TestAccelerate(unittest.TestCase):
     def test_accelerate_npu(self):
         path = "../Data/"
-        torchvision_npu.set_image_backend('npu')
+        torchvision.set_image_backend('npu')
         train_datasets = datasets.ImageFolder(path, transforms.RandomHorizontalFlip())
         self.assertTrue(train_datasets.accelerate_enable)
         self.assertNotEqual(train_datasets.device, "cpu")
 
     def test_accelerate_cpu(self):
         path = "../Data/"
-        torchvision_npu.set_image_backend('PIL')
+        torchvision.set_image_backend('PIL')
         train_datasets = datasets.ImageFolder(path)
         self.assertFalse(train_datasets.accelerate_enable)
         self.assertEqual(train_datasets.device, "cpu")

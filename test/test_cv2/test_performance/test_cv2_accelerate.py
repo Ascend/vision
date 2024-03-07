@@ -86,11 +86,11 @@ class ImagenetHandle(object):
 
 
 def test_cv2_accelerate():
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_train_fps, pil_valid_fps = ImagenetHandle(IMAGENET_PATH).trans_dataset()
 
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_train_fps, cv2_valid_fps = ImagenetHandle(IMAGENET_PATH).trans_dataset()
     assert pil_train_fps < cv2_train_fps

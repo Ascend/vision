@@ -35,11 +35,11 @@ def test_pad(img_path, padding, fill, padding_mode):
     pil_img = Image.open(img_path)
 
     # using pil pad
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_pad = trans.Pad(padding=padding, fill=fill, padding_mode=padding_mode)(pil_img)
 
     # using cv2 pad
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_pad = trans.Pad(padding=padding, fill=fill, padding_mode=padding_mode)(cv2_img)

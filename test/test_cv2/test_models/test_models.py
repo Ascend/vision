@@ -57,7 +57,7 @@ def parse_args():
     parser.add_argument('--distribute_func', type=str, default='launch')
 
     args = parser.parse_args()
-    torchvision_npu.set_image_backend(args.backend)
+    torchvision.set_image_backend(args.backend)
     return args
 
 

@@ -35,13 +35,13 @@ def test_color_jitter(img_path, brightness, contrast, saturation, hue):
     pil_img = Image.open(img_path)
 
     # using pil color jitter
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_brightness = trans.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)(
         pil_img)
 
     # using cv2 color jitter
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_brightness = trans.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)(

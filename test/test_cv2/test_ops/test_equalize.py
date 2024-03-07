@@ -35,13 +35,13 @@ def test_equalize(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil equalize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_equalize = trans.RandomEqualize(p=p)(pil_img)
 
     # using cv2+convert equalize
 
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_equalize = trans.RandomEqualize(p=p)(cv2_img)

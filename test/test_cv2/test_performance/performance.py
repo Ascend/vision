@@ -164,14 +164,14 @@ test_data = "./test/Data/dog/dog.0001.jpg"
 
 
 def pil_ops_performance(pil_ops, loop):
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_handle = timeit.Timer(stmt=pil_ops, setup=import_module)
     pil_ops_spend = pil_handle.timeit(number=loop)
     return pil_ops_spend
 
 
 def cv2_ops_performance(cv2_ops, loop):
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_handle = timeit.Timer(stmt=cv2_ops, setup=import_module)
     cv2_ops_spend = cv2_handle.timeit(number=loop)
     return cv2_ops_spend

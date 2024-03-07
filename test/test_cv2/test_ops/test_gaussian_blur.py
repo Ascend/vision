@@ -34,11 +34,11 @@ def test_gaussian_blur(img_path, kernel_size, sigma):
     pil_img = Image.open(img_path)
 
     # using pil gaussian_blur
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_gaussian_blur = trans.GaussianBlur(kernel_size=kernel_size, sigma=sigma)(pil_img)
 
     # using cv2 gaussian_blur
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_gaussian_blur = trans.GaussianBlur(kernel_size=kernel_size, sigma=sigma)(cv2_img)
 

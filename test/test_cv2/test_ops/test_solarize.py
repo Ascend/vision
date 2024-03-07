@@ -34,12 +34,12 @@ def test_solarize(img_path, threshold, p):
     pil_img = Image.open(img_path)
 
     # using pil solarize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_solarize = trans.RandomSolarize(threshold=threshold, p=p)(pil_img)
 
     # using cv2 solarize
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_solarize = trans.RandomSolarize(threshold=threshold, p=p)(cv2_img)

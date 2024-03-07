@@ -33,11 +33,11 @@ def test_totensor(img_path):
     pil_img = Image.open(img_path)
 
     # using pil totensor
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_totensor = trans.ToTensor()(pil_img)
 
     # using cv2 totensor
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_totensor = trans.ToTensor()(cv2_img)
 

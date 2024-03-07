@@ -38,12 +38,12 @@ def test_rotate_degree(img_path, degree, interpolation, expand, center, fill):
     pil_img = Image.open(img_path)
 
     # using pil rotate
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_rotate = trans.RandomRotation(degrees=degree, interpolation=interpolation, expand=expand, center=center,
                                       fill=fill)(pil_img)
 
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     # using cv2 rotate
@@ -69,11 +69,11 @@ def test_rotate_interpolation(img_path, interpolation):
     pil_img = Image.open(img_path)
 
     # using pil rotate
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_rotate = trans.RandomRotation(45, interpolation=interpolation)(pil_img)
 
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     # using cv2 rotate

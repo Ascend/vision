@@ -34,12 +34,12 @@ def test_posterize(img_path, bit, p):
     pil_img = Image.open(img_path)
 
     # using pil posterize
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_posterize = trans.RandomPosterize(bits=bit, p=p)(pil_img)
 
     # using cv2 posterize
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_posterize = trans.RandomPosterize(bits=bit, p=p)(cv2_img)

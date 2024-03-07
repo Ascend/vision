@@ -34,12 +34,12 @@ def test_vfilp(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil vflip
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_vflip = trans.RandomVerticalFlip(p=p)(pil_img)
 
     # using cv2 vflip
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_vflip = trans.RandomVerticalFlip(p=p)(cv2_img)
@@ -65,12 +65,12 @@ def test_hfilp(img_path, p):
     pil_img = Image.open(img_path)
 
     # using pil hflip
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_hflip = trans.RandomHorizontalFlip(p=p)(pil_img)
 
     # using cv2 hflip
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_hflip = trans.RandomHorizontalFlip(p=p)(cv2_img)

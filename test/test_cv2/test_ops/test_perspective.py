@@ -36,13 +36,13 @@ def test_perspective(img_path, distortion_scale, p, interpolation, fill):
     pil_img = Image.open(img_path)
 
     # using pil perspective
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_perspective = trans.RandomPerspective(distortion_scale=distortion_scale, p=p, interpolation=interpolation,
                                               fill=fill)(pil_img)
 
     # using cv2+convert perspective
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_perspective = trans.RandomPerspective(distortion_scale=distortion_scale, p=p, interpolation=interpolation,

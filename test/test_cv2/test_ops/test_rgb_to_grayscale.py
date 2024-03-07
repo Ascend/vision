@@ -35,11 +35,11 @@ def test_grayscale(img_path, num_out_channels):
     pil_img = Image.open(img_path)
 
     # using pil grayscale
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     pil_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
 
     # using cv2 grayscale
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(cv2_img)
 
@@ -64,12 +64,12 @@ def test_random_grayscale(img_path, num_out_channels):
     pil_img = Image.open(img_path)
 
     # using pil grayscale
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(pil_img)
 
     # using cv2 grayscale
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
     cv2_grayscale = trans.Grayscale(num_output_channels=num_out_channels)(cv2_img)

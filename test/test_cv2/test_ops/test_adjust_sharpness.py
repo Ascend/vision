@@ -35,14 +35,14 @@ def test_adjustSharpness(img_path, sharpness_factor, p):
     pil_img = Image.open(img_path)
 
     # using pil adjustSharpness
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_adjustSharpness = trans.RandomAdjustSharpness(sharpness_factor=sharpness_factor, p=p)(pil_img)
 
     # using cv2 adjustSharpness
     torch.manual_seed(10)
     cv2_img = np.asarray(pil_img)
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_adjustSharpness = trans.RandomAdjustSharpness(sharpness_factor=sharpness_factor, p=p)(cv2_img)
 
     assert isinstance(pil_adjustSharpness, Image.Image) and isinstance(cv2_adjustSharpness, np.ndarray)

@@ -41,12 +41,12 @@ def test_lambda(img_path):
     pil_img = Image.open(img_path)
 
     # using pil lambda
-    torchvision_npu.set_image_backend("PIL")
+    torchvision.set_image_backend("PIL")
     torch.manual_seed(10)
     pil_lambda = trans.Lambda(lambda img: custom_crop(pil_img, (5, 5), 224)),
 
     # using cv2 lambda
-    torchvision_npu.set_image_backend("cv2")
+    torchvision.set_image_backend("cv2")
     cv2_img = np.asarray(pil_img)
     cv2_lambda = trans.Lambda(lambda img: custom_crop(cv2_img, (5, 5), 224)),
 
