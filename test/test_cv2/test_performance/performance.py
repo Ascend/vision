@@ -18,6 +18,7 @@ import torch
 import cv2
 import torchvision.datasets
 from PIL import Image
+import torchvision
 from torchvision import transforms
 
 import torchvision_npu

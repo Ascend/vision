@@ -14,6 +14,7 @@
 
 from PIL import Image
 import pytest
+import torchvision
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
 import numpy as np

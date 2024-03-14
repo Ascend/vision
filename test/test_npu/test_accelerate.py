@@ -1,5 +1,6 @@
 import unittest
 import torch_npu
+import torchvision
 from torchvision import datasets, transforms
 import torchvision_npu
 

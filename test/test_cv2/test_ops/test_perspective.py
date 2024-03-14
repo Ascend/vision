@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 import pytest
 import torch
+import torchvision
 from torchvision import transforms as trans
 from test_cv2_utils import image_similarity_vectors_via_cos
 import torchvision_npu

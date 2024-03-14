@@ -15,6 +15,7 @@
 import numpy as np
 from PIL import Image
 import pytest
+import torchvision
 from torchvision import transforms as trans
 import torchvision_npu
 

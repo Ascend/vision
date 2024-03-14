@@ -16,6 +16,7 @@ import time
 
 import numpy as np
 import torch
+import torchvision
 import torchvision.datasets
 from torchvision import transforms
 from PIL import Image

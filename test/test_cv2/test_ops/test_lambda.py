@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image
 import pytest
 import torch
+import torchvision
 from torchvision import transforms as trans
 import cv2
 import torchvision_npu

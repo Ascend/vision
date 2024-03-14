@@ -34,6 +34,7 @@ from torchvision import models, transforms
 import torchvision.datasets as dset
 from torch.nn.parallel import DistributedDataParallel as DDP
 from apex import amp
+import torchvision
 import torchvision_npu
 
 torch.npu.set_compile_mode(jit_compile=False)
