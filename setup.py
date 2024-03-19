@@ -15,6 +15,10 @@
 import os
 import glob
 import importlib
+import subprocess
+import stat
+from pathlib import Path
+from typing import Union
 
 import torch
 import torch_npu
@@ -24,7 +28,37 @@ from torch_npu.utils.cpp_extension import NpuExtension
 from torch.utils.cpp_extension import BuildExtension, CppExtension
 
 
-__vision__ = '0.9.1'
+VERSION = '0.9.1'
+UNKNOWN = "Unknown"
+
+
+def get_sha(vision_root: Union[str, Path]) -> str:
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=vision_root)  # Compliant
+            .decode("ascii")
+            .strip()
+        )
+    except Exception:
+        return UNKNOWN
+
+
+def generate_torchvision_npu_version():
+    torchvision_npu_root = Path(__file__).resolve().parent
+    version_path = torchvision_npu_root / "torchvision_npu" / "version.py"
+    if version_path.exists():
+        version_path.unlink()
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    modes = stat.S_IWUSR | stat.S_IRUSR
+    sha = get_sha(torchvision_npu_root)
+    global VERSION
+    VERSION += "+git" + sha[:7]
+    with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
+        f.write("__version__ = '{version}'\n".format(version=VERSION))
+    os.chmod(version_path, mode=stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
+
+
+generate_torchvision_npu_version()
 
 
 def get_extensions():
@@ -89,7 +123,7 @@ def get_extensions():
 
 package_name = os.environ.get('TORCHVISION_NPU_PACKAGE_NAME', 'torchvision_npu')
 setup(name=package_name,
-      version=__vision__,
+      version=VERSION,
       description='NPU bridge for Torchvision',
       packages=find_packages(),
       package_data={package_name: ['lib/*.so', '*.so']},

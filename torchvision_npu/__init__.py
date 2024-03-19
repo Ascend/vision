@@ -19,6 +19,7 @@ from torchvision_npu.ops.deform_conv import patch_deform_conv
 from .extensions import _HAS_OPS
 from .ops.roi_pool import patch_roi_pool
 from .transforms.functional import patch_transform_methods
+from .version import __version__ as __version__
 
 
 _image_backend = "npu"

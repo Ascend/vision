@@ -31,7 +31,7 @@ def deform_conv2d(
         mask = torch.zeros((inputs.shape[0], 0), device=inputs.device, dtype=inputs.dtype)
 
     if bias is None:
-        bias = torch.zeros(out_channels, device=input.device, dtype=input.dtype)
+        bias = torch.zeros(out_channels, device=inputs.device, dtype=inputs.dtype)
 
     stride_h, stride_w = _pair(stride)
     pad_h, pad_w = _pair(padding)
