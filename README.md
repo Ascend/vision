@@ -10,7 +10,7 @@
 # 简介
 
 本项目开发了Torchvision Adapter插件，用于昇腾适配Torchvision框架。
-目前该适配框架增加了对Torchvision所提供的常用算子的支持，后续将会提供基于cv2和基于昇腾NPU的图像处理加速后端以加速图像处理。
+目前该适配框架增加了对Torchvision所提供的常用算子的支持，提供了基于cv2和基于昇腾NPU的图像处理加速后端以加速图像处理。
 
 # 安装
 
@@ -18,15 +18,11 @@
 - 需完成CANN开发或运行环境的安装，具体操作请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000002.html)》。
 - 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch 。
 - Python支持版本为3.7.5，PyTorch支持版本为1.8.1, Torchvision支持版本为0.9.1。
-- 需在NPU设备上基于Torchvision源码编译并安装版本为0.9.1的Torchvision wheel包。
 
 
 **安装步骤**
-1. 安装PyTorch和昇腾插件。
 
-   请参考《[Pytorch框架训练环境准备](https://www.hiascend.com/document/detail/zh/ModelZoo/pytorchframework/ptes)》安装PyTorch和昇腾插件。
-
-2. 编译安装Torchvision。
+1. 编译安装Torchvision。
 
    按照以下命令进行编译安装。
 
@@ -41,15 +37,15 @@
     pip3 install torchvision-0.9.*.whl
    ```
 
-3. 编译安装Torchvision Adapter插件。
+2. 编译安装Torchvision Adapter插件。
 
    按照以下命令进行编译安装。
 
    ```
-    # 下载master分支代码，进入插件根目录
-    git clone -b master https://gitee.com/ascend/vision.git vision_npu
+    # 下载Torchvision Adapter代码，进入插件根目录
+    git clone https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
-    git checkout v0.9.1
+    git checkout v0.9.1-dev
     # 安装依赖库
     pip3 install -r requirement.txt
     # 编包
@@ -63,11 +59,11 @@
 
 ## 运行环境变量
 
-   - 设置环境变量脚本，例如：
+   - 运行以下命令初始化CANN环境变量
 
    ```
-    # **指的CANN包的安装目录，CANN-xx指的是版本，{arch}为架构名称。
-    source /**/CANN-xx/{arch}-linux/bin/setenv.bash
+    # Default path, change it if needed.
+    source /usr/local/Ascend/ascend-toolkit/set_env.sh
    ```
 
 ## NPU 适配。
@@ -151,7 +147,7 @@
 
 4. cv2算子支持列表以及性能加速情况。
    
-   单算子实验结果在arm架构的昇腾芯片910A上获得，单算子实验的cv2算子输入为np.ndarray，pillow算子输入为Image.Image。cv2算子支持列表见表1。
+   单算子实验结果在arm架构的Atlas训练系列产品上获得，单算子实验的cv2算子输入为np.ndarray，pillow算子输入为Image.Image。cv2算子支持列表见表1。
 
    **表 1**  cv2算子支持列表
       
@@ -324,7 +320,7 @@
    | roi_align     | √    |
    | roi_pool      | √    |
 
-**Torchvision Adapter插件的适配方案见[适配指导](docs/适配指导.md)。**
+**Torchvision Adapter适配NPU的方案见[适配指导](docs/适配指导.md)。**
 
 # 安全声明
 
