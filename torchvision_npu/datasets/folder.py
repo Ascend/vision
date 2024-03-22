@@ -11,70 +11,188 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Tuple
+
+import sys
+from struct import pack
+from typing import Any, Tuple, Callable, Optional
+
 import numpy as np
+from PIL import Image
+
 import torch
+import torch_npu
 import torchvision
 from torchvision.datasets import folder as fold
-import torch_npu
-from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape, pack
+from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape
+
+_npu_set_first = True
+
+_npu_accelerate_list = [
+    "ToTensor", "Normalize", "Resize",
+    "CenterCrop", "Pad", "RandomCrop",
+    "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop", "RandomSizedCrop", "FiveCrop", "TenCrop",
+    "ColorJitter", "RandomRotation", "RandomAffine", "Grayscale", "RandomGrayscale",
+    "RandomPerspective", "GaussianBlur", "RandomInvert", "RandomPosterize",
+    "RandomSolarize"]
 
 
-def add_dataset_imagefolder():
+def add_datasets_folder():
     torchvision.__name__ = 'torchvision_npu'
-    torchvision._image_backend = 'npu'
-    torchvision.datasets.folder.default_loader = default_loader
-    torchvision.datasets.DatasetFolder.__getitem__ = DatasetFolder.__getitem__
+    torchvision.datasets.DatasetFolder = DatasetFolder
+    torchvision.datasets.ImageFolder = ImageFolder
 
 
-def default_loader(path: str) -> Any:
-    from torchvision import get_image_backend
-
-    if get_image_backend() == 'npu':
-        return npu_loader(path)
-    elif get_image_backend() == "accimage":
-        return fold.accimage_loader(path)
-    else:
-        return fold.pil_loader(path)
+def _assert_image_3d(img: torch.Tensor):
+    if img.ndim != 3:
+        raise ValueError('img is not 3D, got shape ({}).'.format(img.shape))
 
 
-def npu_loader(path:str) -> Any:
+def npu_rollback(transform) -> bool:
+    def check_unsupported(t) -> bool:
+        if t.__class__.__name__ not in _npu_accelerate_list:
+            print("Warning: Cannot accelerate [{}]. Roll back to native PIL implementation."
+                .format(t.__class__.__name__), file=sys.stderr)
+            torchvision.set_image_backend('PIL')
+            return True
+        return False
+
+    if transform.__class__.__name__ == "Compose":
+        for t in transform.transforms:
+            if check_unsupported(t):
+                return True
+        return False
+
+    return check_unsupported(transform)
+
+
+class DatasetFolder(fold.DatasetFolder):
+
+    def __init__(
+            self,
+            root: str,
+            loader: Callable[[str], Any],
+            extensions: Optional[Tuple[str, ...]] = None,
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            is_valid_file: Optional[Callable[[str], bool]] = None,
+    ) -> None:
+        super(DatasetFolder, self).__init__(root,
+                                            loader=loader,
+                                            extensions=extensions,
+                                            transform=transform,
+                                            target_transform=target_transform,
+                                            is_valid_file=is_valid_file)
+
+        self.accelerate_enable = False
+        self.device = "cpu"
+
+        if torchvision.get_image_backend() == 'npu':
+            if npu_rollback(self.transform):
+                return
+            if torch_npu.npu.is_available():
+                self.accelerate_enable = True
+                self.device = "npu:{}".format(torch_npu.npu.current_device())
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        path, target = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+            if isinstance(sample, torch.Tensor) and sample.device.type == 'npu':
+                sample = sample.cpu().squeeze(0)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return sample, target
+
+    def set_accelerate_npu(self, npu: int = -1) -> None:
+        """
+        Set devive for data preprocecssing process.
+
+        Args:
+            npu(int): Device id to set for DP worker process. -1 denotes using the device set by the main process.
+        """
+        if torchvision.get_image_backend() == 'npu':
+            self.accelerate_enable = True
+            self.device = "npu:{}".format(torch_npu.npu.current_device() if npu == -1 else npu)
+        else:
+            print("Warning: Not Enable NPU", file=sys.stderr)
+
+
+def _cv2_loader(path: str) -> Any:
+    with open(path, 'rb') as f:
+        img = Image.open(f)
+        img_rgb = img.convert('RGB')
+        img.close()
+        return np.asarray(img_rgb)
+
+
+def _npu_loader(path: str) -> Any:
     with open(path, "rb") as f:
         f.seek(0)
         prefix = f.read(16)
-        if prefix[:3] == b"\xff\xd8\xff" :
+        # DVPP only provides DecodeJpeg op currently
+        if prefix[:3] == b"\xff\xd8\xff":
             f.seek(0)
             image_shape = extract_jpeg_shape(f)
 
             f.seek(0)
             bytes_string = f.read()
             arr = np.frombuffer(bytes_string, dtype=np.uint8)
-            addr = 16
-            length = len(bytes_string)
-            addr_arr = list(map(int, pack('<Q', addr)))
-            len_arr = list(map(int, pack('<Q', length)))
-            arr = np.hstack((addr_arr, len_arr, arr, [0]))
-            arr = np.array(arr, dtype=np.uint8)
+            if not torch.npu.is_jit_compile_false():
+                addr = 16
+                length = len(bytes_string)
+                addr_arr = list(map(int, pack('<Q', addr)))
+                len_arr = list(map(int, pack('<Q', length)))
+                arr = np.hstack((addr_arr, len_arr, arr, [0]))
+                arr = np.array(arr, dtype=np.uint8)
             uint8_tensor = torch.tensor(arr).npu(non_blocking=True)
             channels = 3
 
-            img = torch_npu.decode_jpeg(uint8_tensor, image_shape=image_shape, channels=channels)
-            return img.unsqueeze(0)
+            if torch.npu.is_jit_compile_false():
+                return torch.ops.torchvision._decode_jpeg_aclnn(
+                    uint8_tensor, image_shape=image_shape, channels=channels)
 
+            img = torch.ops.torchvision._decode_jpeg_aclop(
+                uint8_tensor, image_shape=image_shape, channels=channels)
+            _assert_image_3d(img)
+            return img.unsqueeze(0)
+        # For other imgae types, use PIL to decode, then convert to npu tensor with NCHW format.
         else:
-            img = torch.from_numpy(np.array(fold.pil_loader(path))).permute((2, 0, 1)).contiguous()
+            img = torch.from_numpy(np.array(fold.pil_loader(path)))
+            _assert_image_3d(img)
+            img = img.permute((2, 0, 1)).contiguous()
             return img.unsqueeze(0).npu(non_blocking=True)
 
 
-class DatasetFolder(fold.VisionDataset):
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        path, target = self.samples[index]
-        sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-            if sample.is_npu:
-                sample = sample.cpu().squeeze(0)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+def default_loader(path: str) -> Any:
+    from torchvision import get_image_backend
+    global _npu_set_first
+    if get_image_backend() == 'npu':
+        if _npu_set_first:
+            torch.npu.set_compile_mode(jit_compile=False)
+            torch.ops.torchvision._dvpp_init()
+            _npu_set_first = False
+        return _npu_loader(path)
+    elif get_image_backend() == 'cv2':
+        return _cv2_loader(path)
+    elif get_image_backend() == "accimage":
+        return fold.accimage_loader(path)
+    else:
+        return fold.pil_loader(path)
 
-        return sample, target
+
+class ImageFolder(fold.ImageFolder, DatasetFolder):
+
+    def __init__(
+            self,
+            root: str,
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            loader: Callable[[str], Any] = default_loader,
+            is_valid_file: Optional[Callable[[str], bool]] = None,
+    ):
+        super(ImageFolder, self).__init__(root=root,
+                                          transform=transform,
+                                          target_transform=target_transform,
+                                          loader=loader,
+                                          is_valid_file=is_valid_file)

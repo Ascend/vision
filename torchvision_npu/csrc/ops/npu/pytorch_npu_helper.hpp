@@ -21,7 +21,16 @@
 
 #define NPU_NAME_SPACE at_npu::native
 
-#define CHECK_NPU(x) \
-    TORCH_CHECK(x.device().type() == at::kXLA, #x " must be a NPU tensor")
+#define CHECK_NPU(x) TORCH_CHECK((x).device().type() == at::kXLA, #x " must be a NPU tensor")
+
+template <typename T1, typename T2>
+std::vector<T1> array_to_vector_cast(at::ArrayRef<T2> arr)
+{
+    std::vector<T1> vec;
+    for (size_t i = 0; i < arr.size(); ++i) {
+        vec.emplace_back(static_cast<T1>(arr[i]));
+    }
+    return vec;
+}
 
 #endif  // PYTORCH_NPU_HELPER_HPP_

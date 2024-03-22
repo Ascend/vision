@@ -6,18 +6,17 @@ import unittest
 import argparse
 import sys
 import io
-from collections import OrderedDict
 import warnings
 import random
+from collections import OrderedDict
 from numbers import Number
 
-import numpy as np
-import __main__
 from PIL import Image
-from _utils_internal import get_relative_path
-from torch._six import string_classes
+import __main__
+import numpy as np
 import torch
-
+from torch._six import string_classes
+from _utils_internal import get_relative_path
 
 IS_PY39 = sys.version_info.major == 3 and sys.version_info.minor == 9
 PY39_SEGFAULT_SKIP_MSG = "Segmentation fault with Python 3.9, see the 3367 issue of pytorch vision."
@@ -61,8 +60,8 @@ class MapNestedTensorObjectImpl(object):
 
         elif isinstance(obj, (list, tuple)):
             mapped_iter = []
-            for x in obj:
-                mapped_iter.append(self(x))
+            for item in obj:
+                mapped_iter.append(self(item))
             return mapped_iter if not isinstance(obj, tuple) else tuple(mapped_iter)
 
         else:
@@ -102,7 +101,7 @@ class TestCase(unittest.TestCase):
 
         # Determine expected file based on environment
         expected_file_base = get_relative_path(
-            os.path.realpath(sys.modules[module_id].__file__),
+            os.path.realpath(sys.modules.get(module_id).__file__),
             "expect")
 
         # Set expected_file based on subname.
@@ -197,6 +196,7 @@ class TestCase(unittest.TestCase):
                                 inf_sign = inf_mask.sign()
                                 self.assertTrue(torch.equal(inf_sign, torch.isinf(b).sign()), message)
                                 diff[inf_mask] = 0
+
                         if diff.is_signed() and diff.dtype != torch.int8:
                             diff = diff.abs()
                         max_err = diff.max()
