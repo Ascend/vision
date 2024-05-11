@@ -1,0 +1,4 @@
+.idea
+
+# Generated files
+torchvision_npu/version.py
