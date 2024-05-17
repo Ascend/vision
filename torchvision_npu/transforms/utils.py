@@ -19,7 +19,7 @@ from PIL import Image, ImageOps
 import numpy as np
 
 from typing_extensions import Concatenate, ParamSpec
-from torchvision.transforms import functional_pil as F_pil
+from torchvision.transforms import _functional_pil as F_pil
 
 __all__ = [
     "MAX_VALUES_BY_DTYPE",

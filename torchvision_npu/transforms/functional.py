@@ -25,8 +25,8 @@ import torch
 from torch import Tensor
 import torchvision
 from torchvision.transforms import functional as F
-from torchvision.transforms import functional_tensor as F_t
-from torchvision.transforms import functional_pil as F_pil
+from torchvision.transforms import _functional_tensor as F_t
+from torchvision.transforms import _functional_pil as F_pil
 from torchvision.transforms import InterpolationMode
 from torchvision.utils import _log_api_usage_once
 
