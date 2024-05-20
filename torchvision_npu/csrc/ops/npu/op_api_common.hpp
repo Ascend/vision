@@ -65,6 +65,7 @@ typedef int (*_aclDestroyIntArray)(const aclIntArray* array);
 typedef int (*_aclDestroyFloatArray)(const aclFloatArray* array);
 typedef int (*_aclDestroyBoolArray)(const aclBoolArray* array);
 typedef int (*_aclDestroyTensorList)(const aclTensorList* array);
+using _aclGetViewShape = int (*)(const aclTensor*, int64_t**, uint64_t*);
 
 constexpr int kHashBufSize = 8192;
 constexpr int kHashBufMaxSize = kHashBufSize + 1024;
