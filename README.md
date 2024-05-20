@@ -269,33 +269,33 @@
 
 4. DVPP支持列表
 
-   为如下transforms图像处理方法提供了DVPP处理能力，在设置图像处理后端为npu时，使能DVPP加速。支持接口列表如下表2所示。
+   为如下图像/视频处理方法提供了DVPP处理能力，在设置图像处理后端为npu时，使能DVPP加速。支持接口列表如下表2所示。
 
-   **表 2**  DVPP支持列表
+   **表 2**  DVPP支持功能列表
 
-   | transforms           | functional       | 处理结果是否和pillow完全一致 |    限制                 |
+   | datasets/transforms/io      | functional       | 处理结果是否和pillow完全一致 |    限制                 |
    |----------------------|------------------|--------------------|------------------------------  |
-   |                      | default_loader   | √                        | 分辨率: 6x4~16384x16384   |
+   | default_loader  |    | √                        | JPEG图像分辨率: 6x4~32768x32768   |
    | ToTensor             | to_tensor        | √                        | 分辨率: 6x4~4096x8192     |
    | Normalize            | normalize        | √                        | 分辨率: 6x4~4096x8192     |
-   | Resize               | resize           | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768   |
+   | Resize               | resize           | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
    | CenterCrop<br>FiveCrop<br>TenCrop | crop      | √                        | 分辨率: 6x4~32768x32768   |
-   | Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充值不支持负数 |
+   | Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充宽度支持范围[0,2048] |
    | RandomHorizontalFlip | hflip            | √                        | 分辨率: 6x4~4096x8192     |
    | RandomVerticalFlip   | vflip            | √                        | 分辨率: 6x4~4096x8192     |
-   | RandomResizedCrop<br>RandomSizedCrop | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>插值模式不支持BICUBIC |
+   | RandomResizedCrop<br>RandomSizedCrop | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
    | ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_contrast  | 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
    | GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
-   | RandomAffine         | affine           | 底层实现有差异 | |
-   | RandomPerspective    | perspective      | 底层实现有差异 | |
-   | RandomRotation       | rotate           | 底层实现有差异 | |
-   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | |
-   | RandomPosterize      | posterize    | √ | |
-   | RandomSolarize       | solarize     | √ | |
-   | RandomInvert         | invert       | √ | |
+   | RandomAffine         | affine           | 底层实现有差异 | 6x4~32768x32768 |
+   | RandomPerspective    | perspective      | 底层实现有差异 | 6x4~4096x8192 |
+   | RandomRotation       | rotate           | 底层实现有差异 | 6x4~32768x32768 |
+   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | 6x4~4096x8192 |
+   | RandomPosterize      | posterize    | √ | 6x4~4096x8192 |
+   | RandomSolarize       | solarize     | √ | 6x4~4096x8192 |
+   | RandomInvert         | invert       | √ | 6x4~4096x8192 |
 
 5. 说明。
 

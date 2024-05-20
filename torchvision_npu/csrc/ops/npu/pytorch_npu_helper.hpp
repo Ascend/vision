@@ -23,6 +23,8 @@
 
 #define CHECK_NPU(x) TORCH_CHECK((x).device().type() == at::kXLA, #x " must be a NPU tensor")
 
+#define ALIGN_UP(x, a) ((((x) + ((a) - 1U)) / (a)) * (a))
+
 template <typename T1, typename T2>
 std::vector<T1> array_to_vector_cast(at::ArrayRef<T2> arr)
 {
