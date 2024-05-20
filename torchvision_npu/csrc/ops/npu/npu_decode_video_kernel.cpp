@@ -211,6 +211,8 @@ void* get_pic(void* args)
     int32_t failCnt = 0;
     int32_t timeOut = 1000;
 
+    g_get_exit_state[chanId] = 0;
+
     while (g_get_exit_state[chanId] == 0) {
         ret = VideoDecode::GetInstance().get_frame(chanId, &frame, nullptr, &stream, timeOut);
         if (ret == HI_SUCCESS) {
@@ -469,6 +471,7 @@ std::vector<at::Tensor> dvpp_vdec_stop_get_frame(int64_t chnId)
 int64_t dvpp_vdec_destroy_chnl(int64_t chnId)
 {
     int32_t ret = VideoDecode::GetInstance().destroy_chn(chnId);
+    VideoDecode::GetInstance().PutChn(chnId);
     TORCH_CHECK(ret == 0, "chn ", chnId, ", hi_mpi_vdec_destroy_chn failed, ret ", ret);
     return 0;
 }
