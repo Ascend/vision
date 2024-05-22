@@ -289,13 +289,14 @@
    | ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
    | GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
-   | RandomAffine         | affine           | 底层实现有差异 | 6x4~32768x32768 |
-   | RandomPerspective    | perspective      | 底层实现有差异 | 6x4~4096x8192 |
-   | RandomRotation       | rotate           | 底层实现有差异 | 6x4~32768x32768 |
-   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | 6x4~4096x8192 |
-   | RandomPosterize      | posterize    | √ | 6x4~4096x8192 |
-   | RandomSolarize       | solarize     | √ | 6x4~4096x8192 |
-   | RandomInvert         | invert       | √ | 6x4~4096x8192 |
+   | RandomAffine         | affine           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
+   | RandomPerspective    | perspective      | 底层实现有差异 | 分辨率: 6x4~4096x8192 |
+   | RandomRotation       | rotate           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
+   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | 分辨率: 6x4~4096x8192 |
+   | RandomPosterize      | posterize    | √ | 分辨率: 6x4~4096x8192 |
+   | RandomSolarize       | solarize     | √ | 分辨率: 6x4~4096x8192 |
+   | RandomInvert         | invert       | √ | 分辨率: 6x4~4096x8192 |
+   | encode_jpeg          |              |   | 分辨率: 32x32~8192x8192<br>输出宽高需要2对齐 |
 
 5. 说明。
 

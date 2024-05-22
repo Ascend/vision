@@ -7,8 +7,6 @@ import torchvision
 import torchvision_npu
 from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape
 
-torch_npu.npu.current_stream().set_data_preprocess_stream(True)
-
 
 class TestEncodeJpeg(TestCase):
     def test_encode_jpeg(self):
@@ -21,7 +19,8 @@ class TestEncodeJpeg(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         quality = 50
-        npu_output = torch.ops.torchvision._encode_jpeg_aclnn(npu_input, quality)
+        npu_output = torchvision.io.image.encode_jpeg(npu_input, quality)
+        self.assertEqual(npu_output.device.type, 'npu')
 
         f = npu_output.cpu().numpy().tobytes()
         f = io.BytesIO(f)
