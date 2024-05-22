@@ -85,9 +85,10 @@ class DatasetFolder(fold.DatasetFolder):
 
         self.accelerate_enable = False
         self.device = "cpu"
-
-        if torchvision.get_image_backend() == 'npu':
+        self.backend = torchvision.get_image_backend()
+        if self.backend == 'npu':
             if npu_rollback(self.transform):
+                self.backend = torchvision.get_image_backend()
                 return
             if torch_npu.npu.is_available():
                 self.accelerate_enable = True
@@ -111,7 +112,7 @@ class DatasetFolder(fold.DatasetFolder):
         Args:
             npu(int): Device id to set for DP worker process. -1 denotes using the device set by the main process.
         """
-        if torchvision.get_image_backend() == 'npu':
+        if self.backend == 'npu':
             self.accelerate_enable = True
             self.device = "npu:{}".format(torch_npu.npu.current_device() if npu == -1 else npu)
         else:
@@ -166,12 +167,7 @@ def _npu_loader(path: str) -> Any:
 
 def default_loader(path: str) -> Any:
     from torchvision import get_image_backend
-    global _npu_set_first
     if get_image_backend() == 'npu':
-        if _npu_set_first:
-            torch.npu.set_compile_mode(jit_compile=False)
-            torch.ops.torchvision._dvpp_init()
-            _npu_set_first = False
         return _npu_loader(path)
     elif get_image_backend() == 'cv2':
         return _cv2_loader(path)

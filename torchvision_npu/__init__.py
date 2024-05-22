@@ -19,10 +19,11 @@ from torchvision_npu.ops.deform_conv import patch_deform_conv
 from .extensions import _HAS_OPS
 from .ops.roi_pool import patch_roi_pool
 from .transforms.functional import patch_transform_methods
+from .utils.dataloader import add_dataloader_method
 from .version import __version__ as __version__
 
 
-_image_backend = "npu"
+_image_backend = "PIL"
 
 
 def set_image_backend(backend):
@@ -38,7 +39,7 @@ def set_image_backend(backend):
     if backend not in ["PIL", "accimage", "npu", "cv2"]:
         raise ValueError(f"Invalid backend '{backend}'. Options are 'npu', 'PIL' , 'cv2' and 'accimage'")
     _image_backend = backend
-    print('transform backend: ', torchvision.get_image_backend())
+    print('transform image backend: ', torchvision.get_image_backend())
     if torchvision.get_image_backend() == 'cv2':
         print('If you use the cv2 backend, must install opencv-python already and the input must be np.ndarray, '
               'otherwise an exception will be thrown.')
@@ -62,6 +63,7 @@ def apply_class_patches():
     patch_transform_methods()
     patch_roi_pool()
     patch_deform_conv()
+    add_dataloader_method()
 
 
 apply_class_patches()
