@@ -65,7 +65,7 @@ class TestDecodeVideo(TestCase):
             npu_result = np.array(pair[0].cpu().permute(0, 2, 3, 1))
             cpu_result = pair[1].to_rgb().to_ndarray()
             max_diff = CompareMaxDiff(npu_result, cpu_result)
-            self.assertLessEqual(max_diff, 20)
+            self.assertLessEqual(max_diff, 3)
 
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)
@@ -116,7 +116,7 @@ class TestDecodeVideo(TestCase):
             npu_result = np.array(pair[0].cpu().permute(0, 2, 3, 1))
             cpu_result = pair[1].to_rgb().to_ndarray()
             max_diff = CompareMaxDiff(npu_result, cpu_result)
-            self.assertLessEqual(max_diff, 20)
+            self.assertLessEqual(max_diff, 3)
 
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)
@@ -163,7 +163,7 @@ class TestDecodeVideo(TestCase):
             npu_result = np.array(pair[0].cpu().permute(0, 2, 3, 1))
             cpu_result = pair[1].to_rgb().to_ndarray()
             max_diff = CompareMaxDiff(npu_result, cpu_result)
-            self.assertLessEqual(max_diff, 20)
+            self.assertLessEqual(max_diff, 3)
 
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)
