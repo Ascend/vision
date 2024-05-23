@@ -79,6 +79,7 @@ void VideoDecode::LoadFunctions()
     LoadFunc(handle, vdecGetTmvBufferSizeFunPtr_, "hi_vdec_get_tmv_buf_size");
     LoadFunc(handle, vdecCreateChnFunPtr_, "hi_mpi_vdec_create_chn");
     LoadFunc(handle, vdecDestroyChnFunPtr_, "hi_mpi_vdec_destroy_chn");
+    LoadFunc(handle, sysSetChnCscMatrixFunPtr_, "hi_mpi_sys_set_chn_csc_matrix");
     LoadFunc(handle, vdecStartRecvStreamFunPtr_, "hi_mpi_vdec_start_recv_stream");
     LoadFunc(handle, vdecStopRecvStreamFunPtr_, "hi_mpi_vdec_stop_recv_stream");
     LoadFunc(handle, vdecQueryStatusFunPtr_, "hi_mpi_vdec_query_status");
@@ -143,6 +144,11 @@ hi_s32 VideoDecode::create_chn(hi_vdec_chn chn, const hi_vdec_chn_attr *attr)
 hi_s32 VideoDecode::destroy_chn(hi_vdec_chn chn)
 {
     return vdecDestroyChnFunPtr_(chn);
+}
+
+hi_s32 VideoDecode::sys_set_chn_csc_matrix(hi_vdec_chn chn)
+{
+    return sysSetChnCscMatrixFunPtr_(HI_ID_VDEC, chn, HI_CSC_MATRIX_BT601_NARROW, nullptr);
 }
 
 hi_s32 VideoDecode::start_recv_stream(hi_vdec_chn chn)
@@ -305,6 +311,14 @@ int64_t dvpp_vdec_create_chnl(int64_t pType)
     if (ret != HI_SUCCESS) {
         VideoDecode::GetInstance().PutChn(chn);
         AT_ERROR("hi_mpi_vdec_create_chn ", chn, ", failed, ret = ", ret);
+        return -1;
+    }
+
+    ret = VideoDecode::GetInstance().sys_set_chn_csc_matrix(chn);
+    if (ret != HI_SUCCESS) {
+        int32_t result = VideoDecode::GetInstance().destroy_chn(chn);
+        VideoDecode::GetInstance().PutChn(chn);
+        AT_ERROR("chn ", chn, ", hi_mpi_sys_set_chn_csc_matrix failed, ret = ", ret);
         return -1;
     }
 

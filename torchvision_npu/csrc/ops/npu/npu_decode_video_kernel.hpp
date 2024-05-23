@@ -45,6 +45,7 @@ public:
     hi_u32 get_pic_buf_size(hi_payload_type type, hi_pic_buf_attr *buf_attr);
     hi_s32 create_chn(hi_vdec_chn chn, const hi_vdec_chn_attr *attr);
     hi_s32 destroy_chn(hi_vdec_chn chn);
+    hi_s32 sys_set_chn_csc_matrix(hi_vdec_chn chn);
     hi_s32 start_recv_stream(hi_vdec_chn chn);
     hi_s32 stop_recv_stream(hi_vdec_chn chn);
     hi_s32 query_status(hi_vdec_chn chn, hi_vdec_chn_status *status);
@@ -64,6 +65,7 @@ private:
     hi_s32(*sysExitFunPtr_)(){nullptr};
     hi_s32(*vdecCreateChnFunPtr_)(hi_vdec_chn, const hi_vdec_chn_attr*){nullptr};
     hi_s32(*vdecDestroyChnFunPtr_)(hi_vdec_chn){nullptr};
+    hi_s32(*sysSetChnCscMatrixFunPtr_)(hi_mod_id, hi_s32, hi_csc_matrix, hi_csc_coefficient*){nullptr};
     hi_u32(*vdecGetPicBufferSizeFunPtr_)(hi_payload_type, hi_pic_buf_attr*){nullptr};
     hi_u32(*vdecGetTmvBufferSizeFunPtr_)(hi_payload_type, hi_u32, hi_u32){nullptr};
     hi_s32(*vdecStartRecvStreamFunPtr_)(hi_vdec_chn){nullptr};
