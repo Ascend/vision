@@ -43,11 +43,9 @@ def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
     os.environ["MIN_COMPILE_RESOURCE_USAGE_CTRL"] = "ub_fusion,coretype_check,op_compile"
     torch_npu.npu.set_device(torch_npu.npu.current_device())
     torchvision.set_image_backend('npu')
+    torchvision.set_video_backend('npu')
     # Set priority: exlude AiCore, prefer DVPP
     torch_npu.npu.current_stream().set_data_preprocess_stream(True)
-    # Use acldvpp func by default
-    torch.npu.set_compile_mode(jit_compile=False)
-    torch.ops.torchvision._dvpp_init()
     _utils.worker._worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                                auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                                num_workers, persistent_workers, _shared_seed)

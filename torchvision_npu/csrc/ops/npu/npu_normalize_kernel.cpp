@@ -42,9 +42,9 @@ at::Tensor normalize_aclnn_kernel(const at::Tensor& self,
     at::ArrayRef<float> mean_cast(m_vec);
     std::vector<float> s_vec = array_to_vector_cast<float, double>(std.value());
     at::ArrayRef<float> std_cast(s_vec);
-
+    auto self_ = self.contiguous();
     at::Tensor result = at::empty(self.sizes(), self.options().dtype(at::kFloat));
-    EXEC_NPU_CMD(acldvppNormalize, self, mean_cast, std_cast, result);
+    EXEC_NPU_CMD(acldvppNormalize, self_, mean_cast, std_cast, result);
     return result;
 }
 
