@@ -215,7 +215,7 @@ void* get_pic(void* args)
     hi_u64 outputBuffer = 0;
     int32_t successCnt = 0;
     int32_t failCnt = 0;
-    int32_t timeOut = 1000;
+    int32_t timeOut = 0;
 
     g_get_exit_state[chanId] = 0;
 
