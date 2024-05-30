@@ -93,12 +93,6 @@ at::Tensor roi_align_forward_kernel(
 {
     TORCH_CHECK(rois.size(1) == 5, "rois must have shape as Tensor[K, 5]");
 
-    at::TensorArg input_t{input, "input", 1};
-    at::TensorArg rois_t{rois, "rois", 2};
-
-    at::CheckedFrom c = "roi_align_forward_kernel";
-    at::checkAllSameType(c, {input_t, rois_t});
-
     auto num_rois = rois.size(0);
     auto channels = input.size(1);
     auto height = input.size(2);
@@ -142,12 +136,6 @@ at::Tensor roi_align_backward_kernel(
     int64_t sampling_ratio,
     bool aligned)
 {
-    at::TensorArg grad_t{grad, "grad", 1};
-    at::TensorArg rois_t{rois, "rois", 2};
-
-    at::CheckedFrom c = "roi_align_backward_kernel";
-    at::checkAllSameType(c, {grad_t, rois_t});
-
     at::Tensor grad_input =
         at::zeros({batch_size, channels, height, width}, grad.options());
 
