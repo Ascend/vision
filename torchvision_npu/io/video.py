@@ -77,6 +77,9 @@ class VideoFrameDvpp:
         ...
 
 
+_should_buffer = True
+
+
 def get_frame_by_cv(filename: str, container: "av.container.Container", stream: "av.stream.Stream") -> Dict[
     int, VideoFrameDvpp]:
     cap = cv2.VideoCapture(filename)
@@ -121,13 +124,21 @@ def _decode_video_dvpp(
         return None
 
     # if start_offset is between 2 frames, get one more previous frame
+    pts_per_frame = 0
     if stream.time_base * stream.average_rate != 0:
-        start_offset -= int(1 / (stream.time_base * stream.average_rate))
+        pts_per_frame = int(1 / (stream.time_base * stream.average_rate))
+    start_offset -= pts_per_frame
 
+    max_buffer_size = 5
     frame_width = stream.width
     frame_height = stream.height
     for packet in container.demux(stream):
         if packet.pts is not None:
+            # pts may smaller than dts, so buffer some frames
+            if _should_buffer and packet.pts > end_offset + max_buffer_size * pts_per_frame:
+                break
+            elif not _should_buffer and packet.pts > end_offset:
+                break
             frame = frames[packet.pts].frame
             input_tensor = torch.tensor(frame).npu(non_blocking=True)
             output_tensor = torch.empty([1, 3, frame_height, frame_width], dtype=torch.uint8).npu(
@@ -144,12 +155,7 @@ def _decode_video_dvpp(
                 warnings.warn(f"_decode_video_send_stream failed {ret}")
 
     # ret_tensors_list is ordered by pts
-    ret_tensor_list = torch.ops.torchvision._decode_video_stop_get_frame(chn)
-    if len(ret_tensor_list) == 0:
-        warnings.warn(f"ret_tensor_list is empty: start_offset {start_offset} end_offset {end_offset}")
-        ret_tensors = torch.Tensor(ret_tensor_list)
-    else:
-        ret_tensors = torch.cat(ret_tensor_list, dim=0)
+    ret_tensors = torch.ops.torchvision._decode_video_stop_get_frame(chn)
 
     ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
     if not ret == 0:
@@ -176,7 +182,7 @@ def _read_from_stream_dvpp(
     else:
         warnings.warn("The pts_unit 'pts' gives wrong results. Please use pts_unit 'sec'.")
 
-    should_buffer = True
+    global _should_buffer
     max_buffer_size = 5
 
     # DivX-style packed B-frames can have out-of-order pts (2 frames in a single pkt)
@@ -192,13 +198,13 @@ def _read_from_stream_dvpp(
         if obj is None:
             obj = re.search(rb"DivX(\d+)b(\d+)(\w)", data)
         if obj is not None:
-            should_buffer = obj.group(3) == b"p"
+            _should_buffer = obj.group(3) == b"p"
 
     seek_offset = start_offset
     # some files don't seek to the right location, so better be safe here
     seek_offset = max(seek_offset - 1, 0)
 
-    if should_buffer:
+    if _should_buffer:
         seek_offset = max(seek_offset - max_buffer_size, 0)
     # init frames before seek
     frames = get_frame_by_cv(filename, container, stream)
