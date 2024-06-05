@@ -71,10 +71,10 @@ class TestReadVideo(unittest.TestCase):
             return
         self.assertEqual(frames1[0].shape, frames2[0].shape)
 
-        max_diff_threshold = 4
+        max_diff_threshold = 3
         abs_diff = torch.where(frames1 > frames2, frames1 - frames2, frames2 - frames1)
         max_diff = abs_diff.max()
-        self.assertLess(max_diff, max_diff_threshold)
+        self.assertLessEqual(max_diff, max_diff_threshold)
 
     def test_read_video_npu_pts0(self):
         for test_video, config in test_videos.items():

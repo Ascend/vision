@@ -423,9 +423,8 @@ int64_t dvpp_vdec_send_stream(int64_t chnId, const at::Tensor& self, int64_t out
     return 0;
 }
 
-std::vector<at::Tensor> dvpp_vdec_stop_get_frame(int64_t chnId)
+at::Tensor dvpp_vdec_stop_get_frame(int64_t chnId)
 {
-    std::vector<at::Tensor> result;
     hi_vdec_chn_status status{};
     hi_vdec_chn_status pre_status{};
 
@@ -473,13 +472,23 @@ std::vector<at::Tensor> dvpp_vdec_stop_get_frame(int64_t chnId)
     TORCH_CHECK(ret == 0, "chn ", chnId, ", pthread_join get_pic thread failed, ret = ", ret);
     g_vdec_get_thread[chnId] = 0;
 
+    if (g_out_queue[chnId].size() == 0) {
+        return at::empty({0});
+    }
+
+    at::Tensor &tensor = g_out_queue[chnId][0];
+    at::Tensor result_tensor = at::empty({g_out_queue[chnId].size(), tensor.size(1), tensor.size(2),
+        tensor.size(3)}, tensor.options());
+
+    uint32_t index = 0;
     for (const at::Tensor &tensor : g_out_queue[chnId]) {
-        result.push_back(tensor);
+        result_tensor[index] = tensor.squeeze(0);
+        index++;
     }
 
     g_out_queue[chnId].clear();
     outTensorMap[chnId].clear();
-    return result;
+    return result_tensor;
 }
 
 int64_t dvpp_vdec_destroy_chnl(int64_t chnId)
@@ -497,7 +506,7 @@ TORCH_LIBRARY_FRAGMENT(torchvision, m) {
     m.def("_decode_video_create_chn(int ptype) -> int", &dvpp_vdec_create_chnl);
     m.def("_decode_video_start_get_frame(int chnId) -> int", &dvpp_vdec_start_get_frame);
     m.def("_decode_video_send_stream(int chnId, Tensor self, int outFormat, bool display, Tensor out) -> int", &dvpp_vdec_send_stream);
-    m.def("_decode_video_stop_get_frame(int chnId) -> Tensor[]", &dvpp_vdec_stop_get_frame);
+    m.def("_decode_video_stop_get_frame(int chnId) -> Tensor", &dvpp_vdec_stop_get_frame);
     m.def("_decode_video_destroy_chnl(int chnId) -> int", &dvpp_vdec_destroy_chnl);
 }
 } // namespace ops
