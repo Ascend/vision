@@ -35,20 +35,19 @@ import torch_npu
 MP_STATUS_CHECK_INTERVAL = 5.0
 
 
-def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
-                  auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
-                  num_workers, persistent_workers, _shared_seed):
+def npu_worker_loop(*args, device_id=None):
+    if device_id is None:
+        _utils.worker._worker_loop(*args)
+        return
     # Only valid to data pre-processing processes in DVPP acceleration scenario
     # Set the current process without starting TBE tuning and compilation process to reduce host memory consumption
     os.environ["MIN_COMPILE_RESOURCE_USAGE_CTRL"] = "ub_fusion,coretype_check,op_compile"
-    torch_npu.npu.set_device(torch_npu.npu.current_device())
+    torch_npu.npu.set_device(device_id)
     torchvision.set_image_backend('npu')
     torchvision.set_video_backend('npu')
     # Set priority: exlude AiCore, prefer DVPP
     torch_npu.npu.current_stream().set_data_preprocess_stream(True)
-    _utils.worker._worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
-                               auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
-                               num_workers, persistent_workers, _shared_seed)
+    _utils.worker._worker_loop(*args)
 
 
 class DataLoader(SrcDataLoader):
@@ -124,20 +123,21 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
         self._persistent_workers = loader.persistent_workers
         self._num_yielded = 0
         self._profile_name = f"enumerate(DataLoader)#{self.__class__.__name__}.__next__"
+        self._device_id = None
 
         if self._num_workers <= 0:
             raise ValueError("self._num_workers <= 0")
         if self._prefetch_factor <= 0:
             raise ValueError("self._prefetch_factor <= 0")
 
-        worker_loop = _utils.worker._worker_loop
+        worker_loop = npu_worker_loop
         daemon = True
         if loader.multiprocessing_context is None:
             multiprocessing_context = multiprocessing
             # if enable dvpp, worker process start method should be spawn and cannot be daemonic
             if torchvision.get_video_backend() == 'npu' or torchvision.get_image_backend() == 'npu':
+                self._device_id = torch_npu.npu.current_device()
                 multiprocessing_context = multiprocessing.get_context('spawn')
-                worker_loop = npu_worker_loop  # set device and priority
                 daemon = False
         else:
             multiprocessing_context = loader.multiprocessing_context
@@ -159,7 +159,9 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
                       self._worker_result_queue, self._workers_done_event,
                       self._auto_collation, self._collate_fn, self._drop_last,
                       self._base_seed, self._worker_init_fn, i, self._num_workers,
-                      self._persistent_workers, self._shared_seed))
+                      self._persistent_workers, self._shared_seed),
+                kwargs={"device_id": self._device_id})
+
             w.daemon = daemon
             w.start()
             self._index_queues.append(index_queue)
