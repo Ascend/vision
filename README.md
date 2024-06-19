@@ -24,9 +24,9 @@
 
 1. 编译安装Torchvision。
 
+   方法1：源码编译安装
    按照以下命令进行编译安装。
-
-   ```
+   ```shell
     git clone https://github.com/pytorch/vision.git
     cd vision
     git checkout v0.16.0
@@ -36,12 +36,16 @@
     cd dist
     pip3 install torchvision-0.16.*.whl
    ```
+   方法2：pip安装
+   ```shell
+   pip install torchvision==0.16.0
+   ```
 
 2. 编译安装Torchvision Adapter插件。
 
    按照以下命令进行编译安装。
 
-   ```
+   ```shell
     # 下载Torchvision Adapter代码，进入插件根目录
     git clone https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
@@ -182,16 +186,9 @@
 
 ## 使用DVPP图像处理后端
 
-1. 设置环境变量。
+1. 脚本适配。
 
-   ```
-   # **指的CANN包的安装目录，CANN-xx指的是版本。
-   source /**/CANN-xx/latest/bin/setenv.bash
-   ```
-
-2. 脚本适配。
-
-   通过以下方式使能DVPP加速，在导入torchvision相关包前导入torchvision_npu包，在构造dataset前设置图像处理后端为npu：
+   通过以下方式使能DVPP加速，在导入torchvision相关包后导入torchvision_npu包，在构造dataset前设置图像处理后端为npu：
    ```python
    # 使能DVPP图像处理后端
    ...
@@ -231,7 +228,7 @@
          # 如果此处没有进行nump_array从(H, W, C)到(C, H, W)的转换，那么转换会放在训练中
          nump_array = np.rollaxis(nump_array, 2)
          tensor[i] += torch.from_numpy(nump_array)
-
+   
       return tensor, targets
    ...
    train_loader = torch.utils.data.DataLoader(
@@ -259,7 +256,7 @@
    ...
    ```
 
-3. 执行单元测试脚本。
+2. 执行单元测试脚本。
 
    输出结果OK即为验证成功。
    ```
@@ -267,7 +264,7 @@
    python -m unittest discover
    ```
 
-4. DVPP支持列表
+3. DVPP支持列表
 
    为如下图像/视频处理方法提供了DVPP处理能力，在设置图像处理后端为npu时，使能DVPP加速。支持接口列表如下表2所示。
 
@@ -298,19 +295,58 @@
    | RandomInvert         | invert       | √ | 分辨率: 6x4~4096x8192 |
    | encode_jpeg          |              |   | 分辨率: 32x32~8192x8192<br>输出宽高需要2对齐 |
 
-5. 说明。
+4. 说明。
 
    只有通过torchvision.datasets.ImageFolder/DatasetFolder构造的dataset才可以使能DVPP加速。
-   
+
    torchvision.transforms方法对外接口不变，只支持NCHW(N=1)格式的npu tensor作为入参，其他限制见表2。
 
    物理机场景下，一个device上最多支持64个用户进程，即单p数据预处理进程数最多设置63。
 
+## 使用DVPP视频处理后端
+
+1. 脚本适配。
+
+   通过以下方式使能DVPP加速，在导入torchvision相关包后导入torchvision_npu包，并设置视频处理后端为npu：
+
+   ```python
+   # 使能DVPP视频处理后端
+   ...
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+   torchvision.set_video_backend('npu') # 设置视频处理后端为npu，即使能DVPP加速
+   ...
+   vframes, aframes, info = torchvision.io.read_video(...)
+   ...
+   ```
+
+2. 执行单元测试脚本。
+
+   输出结果OK即为验证成功。
+
+   ```
+   cd test/test_npu/
+   python test_read_video.py
+   ```
+
+3. DVPP支持列表
+
+   为如下视频处理方法提供了DVPP处理能力，在设置视频处理后端为npu时，使能DVPP加速。支持接口列表如下表3所示。
+
+   **表 3**  DVPP支持功能列表
+
+   | functional | 处理结果是否和pyav完全一致 | 限制                    |
+   | ---------- | -------------------------- | ----------------------- |
+   | read_video | 底层实现有差异，误差±3左右 | 仅支持h264/h265编码格式 |
+
+
 
 ## NPU算子支持原生算子列表
+
    对于torchvision中的原生算子支持情况如表3所示。
 
-   **表 3**  NPU支持的原生算子列表
+   **表 4**  NPU支持的原生算子列表
 
    | 算子            | 是否支持 |
    |---------------|------|
@@ -342,8 +378,7 @@
 1. 建议用户在主机（包括宿主机）及容器中设置运行系统umask值为0027及以上，保障新增文件夹默认最高权限为750，新增文件默认最高权限为640。
 2. 建议用户对个人数据、商业资产、源文件、训练过程中保存的各类文件等敏感内容做好权限管控。涉及场景如torch_npu和torchvision_npu安装目录权限管控、多用户使用共享数据集权限管控等场景，管控权限可参考表4进行设置。
 
-
-**表 4**  文件（夹）各场景权限管控推荐最大值
+**表 5**  文件（夹）各场景权限管控推荐最大值
 
 | 类型           | linux权限参考最大值 |
 | -------------- | ---------------  |
@@ -377,7 +412,7 @@
 
 
 ## 公网地址声明
-**表 5** torchvision_npu的配置文件和脚本中存在的公网地址
+**表 6** torchvision_npu的配置文件和脚本中存在的公网地址
 
 | 类型 | 开源代码地址| 文件名  | 公网IP地址/公网URL地址/域名/邮箱地址 | 用途说明 |
 | ----- | --------- | ----------- | ------- | ------- |
