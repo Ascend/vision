@@ -100,6 +100,12 @@ std::tuple<at::Tensor, at::Tensor> roi_pool_forward_kernel(
     int64_t pooled_height,
     int64_t pooled_width)
 {
+    at::TensorArg input_t{input, "input", 1};
+    at::TensorArg rois_t{rois, "rois", 2};
+
+    at::CheckedFrom c = "roi_pool_forward_kernel";
+    at::checkAllSameType(c, {input_t, rois_t});
+
     int num_rois = rois.size(0);
     int channels = input.size(1);
     int height = input.size(2);
@@ -149,6 +155,11 @@ at::Tensor roi_pool_backward_kernel(
 {
     TORCH_CHECK(
         rois.size(1) == 5, "Tensor rois should have shape as Tensor[K, 5]");
+    at::TensorArg grad_t{grad, "grad", 1};
+    at::TensorArg rois_t{rois, "rois", 2};
+
+    at::CheckedFrom c = "roi_pool_backward_kernel";
+    at::checkAllSameType(c, {grad_t, rois_t});
 
     auto num_rois = rois.size(0);
 
