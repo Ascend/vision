@@ -86,12 +86,18 @@ def get_extensions():
     ]
 
     extra_link_args = [
-        "-s",
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
         "-Wl,-z,now",
         "-Wl,--disable-new-dtags,--rpath"
     ]
+
+    DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
+    if DEBUG:
+        extra_compile_args += ['-O0', '-g']
+        extra_link_args += ['-O0', '-g']
+    else:
+        extra_link_args += ['-s']
 
     try:
         extra_compile_args += [
