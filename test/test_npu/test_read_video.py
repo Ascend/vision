@@ -3,6 +3,7 @@ import os
 import random
 import unittest
 from unittest.mock import patch
+import cv2
 import torch
 import torch_npu
 import torchvision
@@ -73,6 +74,8 @@ class TestReadVideo(unittest.TestCase):
 
         max_diff_threshold = 3
         abs_diff = torch.where(frames1 > frames2, frames1 - frames2, frames2 - frames1)
+        if abs_diff.numel() == 0:
+            return
         max_diff = abs_diff.max()
         self.assertLessEqual(max_diff, max_diff_threshold)
 
@@ -134,14 +137,25 @@ class TestReadVideo(unittest.TestCase):
                 self._frames_compare(video_npu, video_ori)
                 self._frames_compare(audio_npu, audio_ori)
 
+    def test_read_video_npu_equal_pts(self):
+        for test_video, config in test_videos.items():
+            full_path = os.path.join(VIDEO_DIR, test_video)
+            random_seek = random.randint(0, config.duration_pts)
+            # npu
+            torchvision.set_video_backend('npu')
+            video_npu, audio_npu, info_npu = torchvision.io.read_video(full_path, random_seek, random_seek)
+            # cpu
+            torchvision.set_video_backend('pyav')
+            video_ori, audio_ori, info_ori = torchvision.io.read_video(full_path, random_seek, random_seek)
+            video_npu = video_npu.cpu()
+            audio_npu = audio_npu.cpu()
+            self._frames_compare(video_npu, video_ori)
+            self._frames_compare(audio_npu, audio_ori)
+
     def test_read_video_npu_pts_out_of_range(self):
         test_video = "R6llTwEh07w.mp4"
         full_path = os.path.join(VIDEO_DIR, test_video)
-        video = test_videos.get(test_video, "Not exist")
-        if video == "Not exist":
-            pass
-        else:
-            duration_pts = test_videos[test_video].duration_pts
+        duration_pts = test_videos[test_video].duration_pts
         # npu
         torchvision.set_video_backend('npu')
         # smaller than 0
@@ -215,6 +229,22 @@ class TestReadVideo(unittest.TestCase):
 
         torchvision.set_video_backend("pyav")
         self.assertRaises(RuntimeError, torchvision.io.read_video, "foo.mp4")
+
+    def test_read_video_mem(self):
+        torchvision.set_video_backend('npu')
+        full_path = os.path.join(VIDEO_DIR, list(test_videos.keys())[0])
+        cap = cv2.VideoCapture(full_path)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+        cap.release()
+        vframes, _, _ = torchvision.io.read_video(full_path)
+        max_mem = torch_npu.npu.max_memory_allocated()
+        cal_mem = 3 * frame_height * frame_width * frame_count
+        # reserve 10%
+        reserve_mem_ratio = 0.1
+        self.assertLess(max_mem, (1 + reserve_mem_ratio) * cal_mem)
 
 
 if __name__ == '__main__':

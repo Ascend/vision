@@ -29,6 +29,8 @@ std::map<hi_u64, at::Tensor> outTensorMap[VDEC_MAX_CHNL_NUM];
 struct GetThreadPara {
     uint32_t chnId;
     uint32_t deviceId;
+    uint32_t totalFrame;
+    uint32_t successCnt;
 };
 
 GetThreadPara g_getPara[VDEC_MAX_CHNL_NUM];
@@ -204,19 +206,20 @@ static void vdec_reset_chn(uint32_t chn)
 void* get_pic(void* args)
 {
     prctl(PR_SET_NAME, "VdecGetPic", 0, 0, 0);
-    GetThreadPara para = *(GetThreadPara*)args;
-    uint32_t chanId = para.chnId;
-    c10_npu::set_device(para.deviceId);
+    GetThreadPara *para = (GetThreadPara*)args;
+    uint32_t chanId = para->chnId;
+    c10_npu::set_device(para->deviceId);
 
     int32_t ret = HI_SUCCESS;
     hi_video_frame_info frame{};
     hi_vdec_stream stream{};
     int32_t decResult = 0; // Decode result
     hi_u64 outputBuffer = 0;
-    int32_t successCnt = 0;
-    int32_t failCnt = 0;
+    uint32_t successCnt = 0;
+    uint32_t failCnt = 0;
     int32_t timeOut = 0;
 
+    std::vector<at::Tensor> outQueue = std::vector<at::Tensor>(para->totalFrame);
     g_get_exit_state[chanId] = 0;
 
     while (g_get_exit_state[chanId] == 0) {
@@ -226,30 +229,12 @@ void* get_pic(void* args)
             outputBuffer = static_cast<hi_u64>(reinterpret_cast<uintptr_t>(frame.v_frame.virt_addr[0]));
             decResult = frame.v_frame.frame_flag;
             if (decResult == 0) { // 0: Decode success
-                successCnt++;
                 const std::lock_guard<std::mutex> guard(outTensorMapMutex[chanId]);
                 auto iter = outTensorMap[chanId].find(outputBuffer);
                 if (iter != outTensorMap[chanId].end()) {
-                    // update size
-                    auto outSize = iter->second.sizes();
-                    std::vector<int64_t> outSizeNew(outSize.size());
-                    for (uint32_t i = 0; i < outSize.size(); ++i) {
-                        outSizeNew[i] = outSize[i];
-                    }
-                    int64_t format = at_npu::native::get_npu_format(iter->second); // 0:NCHW, 1:NHWC
-                    if ((format == 0) || (format == 1)) {
-                        if (format == 0) {
-                            outSizeNew[2] = frame.v_frame.height;
-                            outSizeNew[3] = frame.v_frame.width;
-                        } else {
-                            outSizeNew[1] = frame.v_frame.height;
-                            outSizeNew[2] = frame.v_frame.width;
-                        }
-                        iter->second.resize_(outSizeNew);
-                    }
-
-                    g_out_queue[chanId].push_back(iter->second);
+                    outQueue[successCnt] = iter->second;
                     outTensorMap[chanId].erase(iter);
+                    successCnt++;
                 }
             } else if (decResult == 1) { // 1: Decode fail
                 failCnt++;
@@ -264,7 +249,6 @@ void* get_pic(void* args)
                 failCnt++;
                 TORCH_WARN("chn ", chanId, "GetFrame Success, refFrame Size Error, fail count ", failCnt);
             }
-
             // Release Frame
             ret = VideoDecode::GetInstance().release_frame(chanId, &frame);
             TORCH_CHECK(ret == 0, "chn ", chanId, ", hi_mpi_vdec_release_frame failed, ret = ", ret);
@@ -273,6 +257,9 @@ void* get_pic(void* args)
             usleep(500);
         }
     }
+
+    g_out_queue[chanId] = outQueue;
+    para->successCnt = successCnt;
     return (void*)HI_SUCCESS;
 }
 
@@ -333,7 +320,7 @@ int64_t dvpp_vdec_create_chnl(int64_t pType)
     return static_cast<int64_t>(chn);
 }
 
-int64_t dvpp_vdec_start_get_frame(int64_t chnId)
+int64_t dvpp_vdec_start_get_frame(int64_t chnId, int64_t totalFrame)
 {
     TORCH_CHECK(ValidChnNum(chnId), "invalid chn ", chnId);
 
@@ -343,6 +330,8 @@ int64_t dvpp_vdec_start_get_frame(int64_t chnId)
 
     g_getPara[chnId].chnId = chnId;
     g_getPara[chnId].deviceId = deviceId;
+    g_getPara[chnId].totalFrame = totalFrame;
+    g_getPara[chnId].successCnt = 0;
     g_vdec_get_thread[chnId] = 0;
     int32_t ret = pthread_create(&g_vdec_get_thread[chnId], 0, get_pic, static_cast<void*>(&g_getPara[chnId]));
     if (ret != 0) {
@@ -362,9 +351,6 @@ int64_t dvpp_vdec_send_stream(int64_t chnId, const at::Tensor& self, int64_t out
                  (outputFormat == HI_PIXEL_FORMAT_RGB_888_PLANAR) || (outputFormat == HI_PIXEL_FORMAT_BGR_888_PLANAR)),
         "invalid outFormat ", outputFormat, ", should be ", HI_PIXEL_FORMAT_RGB_888, " or ", HI_PIXEL_FORMAT_BGR_888,
         " or ", HI_PIXEL_FORMAT_RGB_888_PLANAR, " or ", HI_PIXEL_FORMAT_BGR_888_PLANAR);
-
-    int64_t format = at_npu::native::get_npu_format(out); // 0:NCHW, 1:NHWC
-    TORCH_CHECK(((format == 0) || (format == 1)), "invalid npu format ", format);
 
     auto selfSize = self.sizes();
     int64_t selfNelements = c10::multiply_integers(selfSize);
@@ -423,7 +409,7 @@ int64_t dvpp_vdec_send_stream(int64_t chnId, const at::Tensor& self, int64_t out
     return 0;
 }
 
-at::Tensor dvpp_vdec_stop_get_frame(int64_t chnId)
+at::Tensor dvpp_vdec_stop_get_frame(int64_t chnId, int64_t totalFrame)
 {
     hi_vdec_chn_status status{};
     hi_vdec_chn_status pre_status{};
@@ -466,24 +452,26 @@ at::Tensor dvpp_vdec_stop_get_frame(int64_t chnId)
         }
     }
 
-    g_get_exit_state[chnId] = 1; // notify get thread exit
+    g_get_exit_state[chnId] = 1;  // notify get thread exit
 
     ret = pthread_join(g_vdec_get_thread[chnId], nullptr);
     TORCH_CHECK(ret == 0, "chn ", chnId, ", pthread_join get_pic thread failed, ret = ", ret);
     g_vdec_get_thread[chnId] = 0;
 
-    if (g_out_queue[chnId].size() == 0) {
+    // all frame success
+    if (g_getPara[chnId].successCnt == totalFrame) {
+        g_out_queue[chnId].clear();
+        outTensorMap[chnId].clear();
         return at::empty({0});
     }
 
+    // some frame failed
     at::Tensor &tensor = g_out_queue[chnId][0];
-    at::Tensor result_tensor = at::empty({g_out_queue[chnId].size(), tensor.size(1), tensor.size(2),
-        tensor.size(3)}, tensor.options());
-
-    uint32_t index = 0;
-    for (const at::Tensor &tensor : g_out_queue[chnId]) {
-        result_tensor[index] = tensor.squeeze(0);
-        index++;
+    at::Tensor result_tensor =
+       at::empty({g_getPara[chnId].successCnt, tensor.size(0), tensor.size(1), tensor.size(2)}, tensor.options());
+    for (int i = 0 ; i < g_getPara[chnId].successCnt; i++)
+    {
+        result_tensor[i] = g_out_queue[chnId][i].squeeze(0);
     }
 
     g_out_queue[chnId].clear();
@@ -504,9 +492,9 @@ TORCH_LIBRARY_FRAGMENT(torchvision, m) {
     m.def("_dvpp_sys_init() -> int", &dvpp_sys_init);
     m.def("_dvpp_sys_exit() -> int", &dvpp_sys_exit);
     m.def("_decode_video_create_chn(int ptype) -> int", &dvpp_vdec_create_chnl);
-    m.def("_decode_video_start_get_frame(int chnId) -> int", &dvpp_vdec_start_get_frame);
+    m.def("_decode_video_start_get_frame(int chnId, int totalFrame) -> int", &dvpp_vdec_start_get_frame);
     m.def("_decode_video_send_stream(int chnId, Tensor self, int outFormat, bool display, Tensor out) -> int", &dvpp_vdec_send_stream);
-    m.def("_decode_video_stop_get_frame(int chnId) -> Tensor", &dvpp_vdec_stop_get_frame);
+    m.def("_decode_video_stop_get_frame(int chnId, int totalFrame) -> Tensor", &dvpp_vdec_stop_get_frame);
     m.def("_decode_video_destroy_chnl(int chnId) -> int", &dvpp_vdec_destroy_chnl);
 }
 } // namespace ops

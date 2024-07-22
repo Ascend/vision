@@ -70,6 +70,8 @@ def read_video(
 class VideoFrameDvpp:
     dts: int
     pts: int
+    positions: int
+    frame: np.ndarray
 
     def __init__(
             self, dts: int = 0, pts: int = 0
@@ -79,30 +81,47 @@ class VideoFrameDvpp:
         ...
 
 
-_should_buffer = True
+class DecodeParams:
+    def __init__(self, container, start_offset, end_offset, stream):
+        self.container = container
+        self.start_offset = start_offset
+        self.end_offset = end_offset
+        self.stream = stream
 
 
-def get_frame_by_cv(filename: str, container: "av.container.Container", stream: "av.stream.Stream") -> Dict[
-    int, VideoFrameDvpp]:
+def get_frame_by_cv(filename: str, container: "av.container.Container", stream: "av.stream.Stream") -> Tuple[Dict[
+    int, VideoFrameDvpp], int]:
     cap = cv2.VideoCapture(filename)
     cap.set(cv2.CAP_PROP_FORMAT, -1)
-    frames = {}
+    frames: Dict[int, VideoFrameDvpp] = {}
+    pts_list = []
+    pts_per_frame = round(1 / cap.get(cv2.CAP_PROP_POS_AVI_RATIO) / cap.get(cv2.CAP_PROP_FPS), 0)
+
     for packet in container.demux(stream):
         if packet.pts is not None:
             frame = VideoFrameDvpp(packet.dts, packet.pts)
             ret, frame.frame = cap.read()
+            pts_list.append(packet.pts)
             frames[frame.pts] = frame
     cap.release()
-    return frames
+    pts_list.sort()
+    position_list = {value: index for index, value in enumerate(pts_list)}
+    for frame in frames.values():
+        frame.positions = position_list[frame.pts]
+
+    return frames, pts_per_frame
 
 
 def _decode_video_dvpp(
-        container: "av.container.Container",
-        start_offset: float,
-        end_offset: float,
-        stream: "av.stream.Stream",
-        frames: Dict[int, VideoFrameDvpp]
+        decode_params: DecodeParams,
+        frames: Dict[int, VideoFrameDvpp],
+        pts_per_frame: int
 ) -> torch.Tensor:
+    container = decode_params.container
+    start_offset = decode_params.start_offset
+    end_offset = decode_params.end_offset
+    stream = decode_params.stream
+
     codecs_type = stream.name
     hi_pt_h264 = 96
     hi_pt_h265 = 265
@@ -113,42 +132,49 @@ def _decode_video_dvpp(
     else:
         raise ValueError(f"The video codecs_type should be either 'h264' or 'hevc', got {codecs_type}.")
 
+    # if start_offset is between 2 frames, get one more previous frame
+    start_offset = int(start_offset / pts_per_frame) * pts_per_frame
+
+    frame_width = stream.width
+    frame_height = stream.height
+
+    # update end_offset_real
+    end_offset_real = end_offset
+    # if end_offset equals to a frame's pts, get one more this frame
+    if end_offset_real % pts_per_frame == 0:
+        end_offset_real += 1
+    end_offset_real = min(end_offset_real, len(frames) * pts_per_frame)
+    start_frame = math.ceil(start_offset / pts_per_frame)
+    total_frame = math.ceil((end_offset_real - start_offset) / pts_per_frame)
+
+    if end_offset_real < start_offset or total_frame == 0:
+        return torch.empty(0, dtype=torch.uint8, device='npu')
+    ret_tensor = torch.empty([total_frame, 3, frame_height, frame_width], dtype=torch.uint8, device='npu')
+
     # decode from dvpp
     chn = torch.ops.torchvision._decode_video_create_chn(codec_id)
     if chn == -1:
+        warnings.warn(f"_decode_video_create_chn failed {chn}")
         torch.ops.torchvision._dvpp_sys_exit()
         return None
-    ret = torch.ops.torchvision._decode_video_start_get_frame(chn)
+    ret = torch.ops.torchvision._decode_video_start_get_frame(chn, total_frame)
     if not ret == 0:
         warnings.warn(f"_decode_video_start_get_frame failed {ret}")
         torch.ops.torchvision._decode_video_destroy_chnl(chn)
         torch.ops.torchvision._dvpp_sys_exit()
         return None
 
-    # if start_offset is between 2 frames, get one more previous frame
-    pts_per_frame = 0
-    if stream.time_base * stream.average_rate != 0:
-        pts_per_frame = int(1 / (stream.time_base * stream.average_rate))
-    start_offset -= pts_per_frame
-
-    max_buffer_size = 5
-    frame_width = stream.width
-    frame_height = stream.height
     for packet in container.demux(stream):
         if packet.pts is not None:
-            # pts may smaller than dts, so buffer some frames
-            if _should_buffer and packet.pts > end_offset + max_buffer_size * pts_per_frame:
-                break
-            elif not _should_buffer and packet.pts > end_offset:
-                break
             frame = frames[packet.pts].frame
             input_tensor = torch.tensor(frame).npu(non_blocking=True)
-            output_tensor = torch.empty([1, 3, frame_height, frame_width], dtype=torch.uint8).npu(
-                non_blocking=True)
-            if start_offset < int(packet.pts) <= end_offset:
+
+            if start_offset <= int(packet.pts) <= end_offset:
                 display = True
+                output_tensor = ret_tensor[frames[packet.pts].positions - start_frame]
             else:
                 display = False
+                output_tensor = torch.empty(0, dtype=torch.uint8, device='npu')
             # 12:rgb888packed; 13:bgr888packed; 69:rgb888planer; 70:bgr888planer. Packed is HWC, planer is CHW
             # use CHW to avoid memory copy
             ret = torch.ops.torchvision._decode_video_send_stream(chn, input_tensor, 69, display,
@@ -156,14 +182,18 @@ def _decode_video_dvpp(
             if not ret == 0:
                 warnings.warn(f"_decode_video_send_stream failed {ret}")
 
-    # ret_tensors_list is ordered by pts
-    ret_tensors = torch.ops.torchvision._decode_video_stop_get_frame(chn)
+    # ret_tensor is ordered by pts
+    ret_tensor_dvpp = torch.ops.torchvision._decode_video_stop_get_frame(chn, total_frame)
+
+    # if ret_tensor_dvpp empty, means ret_tensor already filled
+    if ret_tensor_dvpp.numel() != 0:
+        ret_tensor = ret_tensor_dvpp
 
     ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
     if not ret == 0:
         warnings.warn(f"_decode_video_destroy_chnl failed {ret}")
 
-    return ret_tensors
+    return ret_tensor
 
 
 def _read_from_stream_dvpp(
@@ -184,9 +214,8 @@ def _read_from_stream_dvpp(
     else:
         warnings.warn("The pts_unit 'pts' gives wrong results. Please use pts_unit 'sec'.")
 
-    global _should_buffer
     max_buffer_size = 5
-
+    should_buffer = True
     # DivX-style packed B-frames can have out-of-order pts (2 frames in a single pkt)
     # so need to buffer some extra frames to sort everything
     # properly
@@ -200,22 +229,22 @@ def _read_from_stream_dvpp(
         if obj is None:
             obj = re.search(rb"DivX(\d+)b(\d+)(\w)", data)
         if obj is not None:
-            _should_buffer = obj.group(3) == b"p"
+            should_buffer = obj.group(3) == b"p"
 
     seek_offset = start_offset
     # some files don't seek to the right location, so better be safe here
     seek_offset = max(seek_offset - 1, 0)
 
-    if _should_buffer:
+    if should_buffer:
         seek_offset = max(seek_offset - max_buffer_size, 0)
     # init frames before seek
-    frames = get_frame_by_cv(filename, container, stream)
+    frames, pts_per_frame = get_frame_by_cv(filename, container, stream)
     try:
         container.seek(seek_offset, any_frame=False, backward=True, stream=stream)
     except av.AVError:
         return []
-
-    frames = _decode_video_dvpp(container, start_offset, end_offset, stream, frames)
+    decode_params = DecodeParams(container, start_offset, end_offset, stream)
+    frames = _decode_video_dvpp(decode_params, frames, pts_per_frame)
 
     if frames is None:
         warnings.warn(f"_decode_video_dvpp failed: {filename}")
@@ -280,6 +309,8 @@ def _read_video(
                 # guard against potentially corrupted files
                 if video_fps is not None:
                     info["video_fps"] = float(video_fps)
+            else:
+                vframes = torch.empty(0, dtype=torch.uint8, device='npu')
 
             if container.streams.audio:
                 audio_frames = torchvision.io.video._read_from_stream(
@@ -293,7 +324,7 @@ def _read_video(
                 info["audio_fps"] = container.streams.audio[0].rate
 
     except av.AVError:
-        raise RuntimeWarning("Catch an AVError") from av.AVError
+        vframes = torch.empty(0, dtype=torch.uint8, device='npu')
 
     aframes_list = [frame.to_ndarray() for frame in audio_frames]
 
