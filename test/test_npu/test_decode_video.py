@@ -45,7 +45,7 @@ class TestDecodeVideo(TestCase):
         ptype = 96
         chn = torch.ops.torchvision._decode_video_create_chn(ptype)
         self.assertNotEqual(chn, -1)
-        ret = torch.ops.torchvision._decode_video_start_get_frame(chn)
+        ret = torch.ops.torchvision._decode_video_start_get_frame(chn, 1)
         self.assertEqual(ret, 0)
 
         with open(path, "rb") as f:
@@ -58,8 +58,8 @@ class TestDecodeVideo(TestCase):
             ret = torch.ops.torchvision._decode_video_send_stream(chn, input_tensor, outFormat, True, output_tensor)
             self.assertEqual(ret, 0)
 
-        npu_results = torch.ops.torchvision._decode_video_stop_get_frame(chn)
-        self._frames_compare(npu_results, cpu_results)
+        torch.ops.torchvision._decode_video_stop_get_frame(chn, 1)
+        self._frames_compare(output_tensor, cpu_results)
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)
         ret = torch.ops.torchvision._dvpp_sys_exit()
@@ -83,20 +83,19 @@ class TestDecodeVideo(TestCase):
         ptype = 96
         chn = torch.ops.torchvision._decode_video_create_chn(ptype)
         self.assertNotEqual(chn, -1)
-        ret = torch.ops.torchvision._decode_video_start_get_frame(chn)
+        ret = torch.ops.torchvision._decode_video_start_get_frame(chn, cpu_results.size(0))
         self.assertEqual(ret, 0)
-
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
             input_tensor = torch.tensor(frame).npu(non_blocking=True)
-            output_tensor = torch.empty([1, 3, 480, 640], dtype=torch.uint8).npu(non_blocking=True) # NCHW
+            output_tensor = torch.empty([3, 480, 640], dtype=torch.uint8).npu(non_blocking=True) # CHW
             outFormat = 69 # 12:rgb888; 13:bgr888; 69:rgb888planer; 70:bgr888planer
             ret = torch.ops.torchvision._decode_video_send_stream(chn, input_tensor, outFormat, True, output_tensor)
             self.assertEqual(ret, 0)
 
-        npu_results = torch.ops.torchvision._decode_video_stop_get_frame(chn)
+        npu_results = torch.ops.torchvision._decode_video_stop_get_frame(chn, cpu_results.size(0) + 1)
         self._frames_compare(npu_results, cpu_results)
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)
@@ -117,7 +116,7 @@ class TestDecodeVideo(TestCase):
         ptype = 265
         chn = torch.ops.torchvision._decode_video_create_chn(ptype)
         self.assertNotEqual(chn, -1)
-        ret = torch.ops.torchvision._decode_video_start_get_frame(chn)
+        ret = torch.ops.torchvision._decode_video_start_get_frame(chn, 1)
         self.assertEqual(ret, 0)
 
         with open(path, "rb") as f:
@@ -130,8 +129,8 @@ class TestDecodeVideo(TestCase):
             ret = torch.ops.torchvision._decode_video_send_stream(chn, input_tensor, outFormat, True, output_tensor)
             self.assertEqual(ret, 0)
 
-        npu_results = torch.ops.torchvision._decode_video_stop_get_frame(chn)
-        self._frames_compare(npu_results, cpu_results)
+        torch.ops.torchvision._decode_video_stop_get_frame(chn, 1)
+        self._frames_compare(output_tensor, cpu_results)
 
         ret = torch.ops.torchvision._decode_video_destroy_chnl(chn)
         self.assertEqual(ret, 0)

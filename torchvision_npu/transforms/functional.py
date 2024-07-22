@@ -28,8 +28,8 @@ from torchvision.transforms import functional as F
 from torchvision.transforms import functional_tensor as F_t
 from torchvision.transforms import functional_pil as F_pil
 from torchvision.transforms import InterpolationMode
+from torchvision.utils import _log_api_usage_once
 
-from ..utils import _log_api_usage_once
 from . import functional_npu as F_npu
 from . import functional_cv2 as F_cv2
 from .utils import _pillow2array, _is_numpy, _is_numpy_image
