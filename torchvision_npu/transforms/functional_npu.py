@@ -18,8 +18,9 @@ import numpy as np
 import torch
 import torch_npu
 from torch import Tensor
+from .utils import deal_with_tensor_batch
 
-_interpolation_crop_and_resize_int2str = {0: "bilinear", 1: "nearest"}
+_interpolation_crop_and_resize_int2str = {0: "bilinear", 1: "nearest", 2: "bicubic"}
 _interpolation_resize_int2str = {0: "linear", 1: "nearest", 2: "cubic"}
 _padding_mode_int2str = {0: "constant", 1: "edge", 2: "reflect", 3: "symmetric"}
 _gb_kernel_size = [1, 3, 5]
@@ -36,6 +37,7 @@ def _assert_mode(mode: int, supported_modes: List[int]) -> None:
         raise ValueError("Interpolation mode '{}' is unsupported with Tensor input".format(interpolation))
 
 
+@deal_with_tensor_batch
 def _normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
     result = tensor
     if torch.npu.is_jit_compile_false():
@@ -48,25 +50,27 @@ def _normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: boo
     return tensor
 
 
+@deal_with_tensor_batch
 def _vflip(img: Tensor) -> Tensor:
     if torch.npu.is_jit_compile_false():
         return torch.ops.torchvision._vertical_flip_aclnn(img)
     return torch.ops.torchvision._reverse_aclop(img, axis=[2])
 
 
+@deal_with_tensor_batch
 def _hflip(img: Tensor) -> Tensor:
     if torch.npu.is_jit_compile_false():
         return torch.ops.torchvision._horizontal_flip_aclnn(img)
     return torch.ops.torchvision._reverse_aclop(img, axis=[3])
 
 
+@deal_with_tensor_batch
 def _resized_crop(img: Tensor, crop_param: List[int], size: List[int], interpolation: int = 0) -> Tensor:
     i, j, h, w = [p for p in crop_param]
     if torch.npu.is_jit_compile_false():
         return torch.ops.torchvision._crop_and_resize_aclnn(img, top=i, left=j, height=h, width=w,
                                                             size=size, interpolation_mode=interpolation)
 
-    _assert_mode(interpolation, [0, 1])
     width, height = img.shape[-1], img.shape[-2]
     if width <= 1 or height <= 1:
         return img
@@ -81,6 +85,7 @@ def _to_tensor(pic) -> Tensor:
     return torch.ops.torchvision._img_to_tensor_aclop(pic)
 
 
+@deal_with_tensor_batch
 def _resize(img: Tensor, size: List[int], interpolation: int = 0) -> Tensor:
     if not isinstance(size, (int, tuple, list)):
         raise TypeError("Got inappropriate size arg")
@@ -118,6 +123,7 @@ def _resize(img: Tensor, size: List[int], interpolation: int = 0) -> Tensor:
     return torch.ops.torchvision._resize_aclop(img, size=sizes, mode=_interpolation_resize_int2str[interpolation])
 
 
+@deal_with_tensor_batch
 def _crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
     if torch.npu.is_jit_compile_false():
         return torch.ops.torchvision._crop_aclnn(img, top=top, left=left, height=height, width=width)
@@ -128,6 +134,7 @@ def _crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
     return torch.ops.torchvision._crop_aclop(img, size=size, axis=axis, offsets=offsets)
 
 
+@deal_with_tensor_batch
 def _pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: int = 0) -> Tensor:
     if not isinstance(padding, (int, tuple, list)):
         raise TypeError("Got inappropriate padding arg")
@@ -169,6 +176,7 @@ def _pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: int = 0) 
     return torch.ops.torchvision._pad_aclop(img, pad=p, constant_values=fill, mode=_padding_mode_int2str[padding_mode])
 
 
+@deal_with_tensor_batch
 def _adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     if brightness_factor < 0:
         raise ValueError('brightness_factor ({}) is not non-negative.'.format(brightness_factor))
@@ -178,6 +186,7 @@ def _adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     return torch.ops.torchvision._adjust_brightness_aclop(img, factor=brightness_factor)
 
 
+@deal_with_tensor_batch
 def _adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     if contrast_factor < 0:
         raise ValueError('contrast_factor ({}) is not non-negative.'.format(contrast_factor))
@@ -187,6 +196,7 @@ def _adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     return torch.ops.torchvision._adjust_contrast_aclop(img, factor=contrast_factor)
 
 
+@deal_with_tensor_batch
 def _adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     if not (-0.5 <= hue_factor <= 0.5):
         raise ValueError('hue_factor ({}) is not in [-0.5, 0.5].'.format(hue_factor))
@@ -200,6 +210,7 @@ def _adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     return torch.ops.torchvision._adjust_hue_aclop(img, factor=hue_factor)
 
 
+@deal_with_tensor_batch
 def _adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
     if saturation_factor < 0:
         raise ValueError('saturation_factor ({}) is not non-negative.'.format(saturation_factor))
@@ -209,6 +220,7 @@ def _adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
     return torch.ops.torchvision._adjust_saturation_aclop(img, factor=saturation_factor)
 
 
+@deal_with_tensor_batch
 def _gaussian_blur(img: Tensor, kernel_size: List[int], sigma: List[float]) -> Tensor:
     if kernel_size[0] not in _gb_kernel_size or kernel_size[1] not in _gb_kernel_size:
         raise ValueError("sigma value must be in range {}.".format(_gb_kernel_size))
@@ -222,6 +234,7 @@ def _gaussian_blur(img: Tensor, kernel_size: List[int], sigma: List[float]) -> T
                                                       padding_mode=_padding_mode_int2str[padding_mode])
 
 
+@deal_with_tensor_batch
 def _rotate(img: Tensor, rotate_force_param: List,
            center: Optional[List[int]] = None, fill: Optional[List[float]] = None
 ) -> Tensor:
@@ -243,6 +256,7 @@ def _rotate(img: Tensor, rotate_force_param: List,
         center=center, padding_mode=0, fill=fill)
 
 
+@deal_with_tensor_batch
 def _affine(img: Tensor, matrix: List[float], interpolation: int = 1, fill: Optional[List[float]] = None
 ) -> Tensor:
     _assert_mode(interpolation, [0, 1])
@@ -259,6 +273,7 @@ def _affine(img: Tensor, matrix: List[float], interpolation: int = 1, fill: Opti
         padding_mode=0, fill=fill)
 
 
+@deal_with_tensor_batch
 def _perspective(img: Tensor, matrix: List[float], interpolation: int = 0, fill: Optional[List[float]] = None
 ) -> Tensor:
     _assert_mode(interpolation, [0, 1])
@@ -277,6 +292,7 @@ def _perspective(img: Tensor, matrix: List[float], interpolation: int = 0, fill:
         padding_mode=0, fill=fill)
 
 
+@deal_with_tensor_batch
 def _rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
     _assert_channels(img, [3])
 
@@ -286,6 +302,7 @@ def _rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
     return torch.ops.torchvision._rgb_to_grayscale_aclnn(img, output_channels_num=num_output_channels)
 
 
+@deal_with_tensor_batch
 def _posterize(img: Tensor, bits: int) -> Tensor:
     if img.dtype != torch.uint8:
         raise TypeError("Only torch.uint8 image tensors are supported, but found {}".format(img.dtype))
@@ -294,6 +311,7 @@ def _posterize(img: Tensor, bits: int) -> Tensor:
     return torch.ops.torchvision._posterize_aclnn(img, bits=bits)
 
 
+@deal_with_tensor_batch
 def _solarize(img: Tensor, threshold: float) -> Tensor:
     _assert_channels(img, [1, 3])
 
@@ -301,6 +319,7 @@ def _solarize(img: Tensor, threshold: float) -> Tensor:
     return torch.ops.torchvision._solarize_aclnn(img, threshold=threshold)
 
 
+@deal_with_tensor_batch
 def _invert(img: Tensor) -> Tensor:
     _assert_channels(img, [1, 3])
 
