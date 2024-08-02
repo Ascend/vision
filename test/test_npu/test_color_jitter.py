@@ -7,8 +7,6 @@ import torchvision.transforms as transforms
 import torchvision_npu
 from torchvision_npu.testing.test_deviation_case import TestCase
 
-torch_npu.npu.current_stream().set_data_preprocess_stream(True)
-
 
 class TestColorJitter(TestCase):
     def test_color_jitter(self):
@@ -20,7 +18,7 @@ class TestColorJitter(TestCase):
         self.assertEqual(npu_output.dtype, torch.uint8)
         self.assertEqual(npu_output.shape, torch.Size([1, 3, 355, 432]))
 
-    def test_adjust_hue(self):
+    def test_adjust_hue_single(self):
         torch.ops.torchvision._dvpp_init()
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder._npu_loader(path)
@@ -30,7 +28,7 @@ class TestColorJitter(TestCase):
         npu_output = transforms.functional.adjust_hue(npu_input, factor).cpu().squeeze(0)
         self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
-    def test_adjust_contrast(self):
+    def test_adjust_contrast_single(self):
         torch.ops.torchvision._dvpp_init()
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder._npu_loader(path)
@@ -40,7 +38,7 @@ class TestColorJitter(TestCase):
         npu_output = transforms.functional.adjust_contrast(npu_input, factor).cpu().squeeze(0)
         self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
-    def test_adjust_brightness(self):
+    def test_adjust_brightness_single(self):
         torch.ops.torchvision._dvpp_init()
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder._npu_loader(path)
@@ -50,7 +48,7 @@ class TestColorJitter(TestCase):
         npu_output = transforms.functional.adjust_brightness(npu_input, factor).cpu().squeeze(0)
         self.assert_acceptable_deviation(npu_output, cpu_output, 2)
     
-    def test_adjust_saturation(self):
+    def test_adjust_saturation_single(self):
         torch.ops.torchvision._dvpp_init()
         path = "../Data/dog/dog.0001.jpg"
         npu_input = torchvision_npu.datasets.folder._npu_loader(path)
@@ -58,6 +56,78 @@ class TestColorJitter(TestCase):
         factor = np.random.uniform(0, 100)
         cpu_output = transforms.functional.adjust_saturation(cpu_input, factor)
         npu_output = transforms.functional.adjust_saturation(npu_input, factor).cpu().squeeze(0)
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_hue_multi_float(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.rand(4, 3, 480, 360, dtype=torch.float32)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(-0.5, 0.5)
+        cpu_output = transforms.functional.adjust_hue(cpu_input, factor)
+        npu_output = transforms.functional.adjust_hue(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_contrast_multi_float(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.rand(4, 3, 480, 360, dtype=torch.float32)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(0, 100)
+        cpu_output = transforms.functional.adjust_contrast(cpu_input, factor)
+        npu_output = transforms.functional.adjust_contrast(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_brightness_multi_float(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.rand(4, 3, 480, 360, dtype=torch.float32)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.array([1.5])
+        cpu_output = transforms.functional.adjust_brightness(cpu_input, factor)
+        npu_output = transforms.functional.adjust_brightness(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+    
+    def test_adjust_saturation_multi_float(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.rand(4, 3, 480, 360, dtype=torch.float32)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(0, 100)
+        cpu_output = transforms.functional.adjust_saturation(cpu_input, factor)
+        npu_output = transforms.functional.adjust_saturation(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_hue_multi_uint8(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.randint(0, 256, (4, 3, 480, 360), dtype=torch.uint8)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(-0.5, 0.5)
+        cpu_output = transforms.functional.adjust_hue(cpu_input, factor)
+        npu_output = transforms.functional.adjust_hue(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_contrast_multi_uint8(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.randint(0, 256, (4, 3, 480, 360), dtype=torch.uint8)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(0, 100)
+        cpu_output = transforms.functional.adjust_contrast(cpu_input, factor)
+        npu_output = transforms.functional.adjust_contrast(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+
+    def test_adjust_brightness_multi_uint8(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.randint(0, 256, (4, 3, 480, 360), dtype=torch.uint8)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(0, 100)
+        cpu_output = transforms.functional.adjust_brightness(cpu_input, factor)
+        npu_output = transforms.functional.adjust_brightness(npu_input, factor).cpu()
+        self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+    
+    def test_adjust_saturation_multi_uint8(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.randint(0, 256, (4, 3, 480, 360), dtype=torch.uint8)
+        npu_input = cpu_input.npu(non_blocking=True)
+        factor = np.random.uniform(0, 100)
+        cpu_output = transforms.functional.adjust_saturation(cpu_input, factor)
+        npu_output = transforms.functional.adjust_saturation(npu_input, factor).cpu()
         self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
 

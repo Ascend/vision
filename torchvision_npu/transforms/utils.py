@@ -15,8 +15,10 @@
 from functools import wraps
 from typing import Callable, Any
 
+from torch import Tensor
 from PIL import Image, ImageOps
 import numpy as np
+import torch
 
 from typing_extensions import Concatenate, ParamSpec
 from torchvision.transforms import functional_pil as F_pil
@@ -77,6 +79,27 @@ def preserve_channel_dim(
             result = np.expand_dims(result, axis=-1)
         return result
 
+    return wrapped_function
+
+
+def deal_with_tensor_batch(func: Callable) -> Callable:
+    """Deal with multi batch of tensor in npu"""
+
+    @wraps(func)
+    def wrapped_function(img: Tensor, *args: P.args, **kwargs: P.kwargs) -> Tensor:
+        if img.ndim == 4:    
+            processed_tensors = []
+            for i in range(img.shape[0]):
+                tensor = func(img[i].unsqueeze(0), *args, **kwargs)
+                processed_tensors.append(tensor)
+            batch_tensor = torch.cat(processed_tensors, dim=0)
+        elif img.ndim == 3:
+            batch_tensor = func(img.unsqueeze(0), *args, **kwargs).squeeze(0)
+        else:
+            raise ValueError('Expected tensor to be a tensor image of size (C, H, W) or (N, C, H, W). Got tensor.size() = '
+                         '{}.'.format(img.size()))
+        return batch_tensor
+        
     return wrapped_function
 
 

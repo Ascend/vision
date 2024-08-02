@@ -160,7 +160,6 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
                          '{}.'.format(tensor.size()))
 
     if tensor.device.type == 'npu':
-        _assert_image_npu(tensor)
         return F_npu._normalize(tensor, mean, std, inplace)
 
     return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
@@ -191,7 +190,6 @@ def hflip(img: Tensor) -> Tensor:
         return F_pil.hflip(img)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._hflip(img)
 
     return F_t.hflip(img)
@@ -237,7 +235,6 @@ def resized_crop(
         _log_api_usage_once(resized_crop)
 
     if isinstance(img, torch.Tensor) and img.device.type == 'npu':
-        _assert_image_npu(img)
         if interpolation not in _npu_interpolation_mode_mapping:
             raise TypeError(f"NPU does not support {interpolation.value} interpolation")
         crop_param = [top, left, height, width]
@@ -261,7 +258,6 @@ def to_tensor(pic) -> Tensor:
         Tensor: Converted image.
     """
     if isinstance(pic, torch.Tensor) and pic.dtype == torch.uint8 and pic.device.type == 'npu':
-        _assert_image_npu(pic)
         return F_npu._to_tensor(pic)
     return F.to_tensor_ori(pic)
 
@@ -325,7 +321,6 @@ def vflip(img: Tensor) -> Tensor:
         return F_pil.vflip(img)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._vflip(img)
 
     return F_t.vflip(img)
@@ -457,7 +452,6 @@ def resize(
         return F_pil.resize(img, size=size, interpolation=pil_interpolation, max_size=max_size)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         if interpolation not in _npu_interpolation_mode_mapping:
             raise TypeError(f"NPU does not support {interpolation.value} interpolation")
         return F_npu._resize(img, size=output_size, interpolation=_npu_interpolation_mode_mapping[interpolation])
@@ -491,7 +485,6 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
         return F_pil.crop(img, top, left, height, width)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._crop(img, top, left, height, width)
 
     return F_t.crop(img, top, left, height, width)
@@ -671,7 +664,6 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
         return F_pil.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         if padding_mode not in _npu_padding_mode_mapping:
             raise TypeError(f"NPU does not support {padding_mode} padding_mode")
         return F_npu._pad(img, padding=padding, fill=fill, padding_mode=_npu_padding_mode_mapping[padding_mode])
@@ -781,7 +773,6 @@ def rotate(
         return F_pil.rotate(img, angle=angle, interpolation=pil_interpolation, expand=expand, center=center, fill=fill)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         if interpolation not in _npu_interpolation_mode_mapping:
             raise TypeError(f"NPU does not support {interpolation.value} interpolation")
         rotate_force_param = [angle, _npu_interpolation_mode_mapping[interpolation], expand]
@@ -912,7 +903,6 @@ def affine(
         return F_pil.affine(img, matrix=matrix, interpolation=pil_interpolation, fill=fill)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         if interpolation not in _npu_interpolation_mode_mapping:
             raise TypeError(f"NPU does not support {interpolation.value} interpolation")
         center = [img_size[0] * 0.5, img_size[1] * 0.5]
@@ -947,7 +937,6 @@ def invert(img: Tensor) -> Tensor:
         return F_pil.invert(img)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._invert(img)
 
     return F_t.invert(img)
@@ -1013,7 +1002,6 @@ def perspective(
         return F_pil.perspective(img, coeffs, interpolation=pil_interpolation, fill=fill)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         if interpolation not in _npu_interpolation_mode_mapping:
             raise TypeError(f"NPU does not support {interpolation.value} interpolation")
         return F_npu._perspective(img, coeffs, interpolation=_npu_interpolation_mode_mapping[interpolation], fill=fill)
@@ -1045,7 +1033,6 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
         return F_pil.adjust_brightness(img, brightness_factor)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._adjust_brightness(img, brightness_factor)
 
     return F_t.adjust_brightness(img, brightness_factor)
@@ -1075,7 +1062,6 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
         return F_pil.adjust_contrast(img, contrast_factor)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._adjust_contrast(img, contrast_factor)
 
     return F_t.adjust_contrast(img, contrast_factor)
@@ -1105,7 +1091,6 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
         return F_pil.adjust_saturation(img, saturation_factor)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._adjust_saturation(img, saturation_factor)
 
     return F_t.adjust_saturation(img, saturation_factor)
@@ -1147,7 +1132,6 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
         return F_pil.adjust_hue(img, hue_factor)
     
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._adjust_hue(img, hue_factor)
 
     return F_t.adjust_hue(img, hue_factor)
@@ -1179,7 +1163,6 @@ def posterize(img: Tensor, bits: int) -> Tensor:
         return F_pil.posterize(img, bits)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._posterize(img, bits)
 
     return F_t.posterize(img, bits)
@@ -1207,7 +1190,6 @@ def solarize(img: Tensor, threshold: float) -> Tensor:
         return F_pil.solarize(img, threshold)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._solarize(img, threshold)
 
     return F_t.solarize(img, threshold)
@@ -1351,7 +1333,6 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
         t_img = to_tensor(img)
 
     if t_img.device.type == 'npu':
-        _assert_image_npu(t_img)
         return F_npu._gaussian_blur(t_img, kernel_size, sigma)
 
     output = F_t.gaussian_blur(t_img, kernel_size, sigma)
@@ -1390,7 +1371,6 @@ def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
         return F_pil.to_grayscale(img, num_output_channels)
 
     if img.device.type == 'npu':
-        _assert_image_npu(img)
         return F_npu._rgb_to_grayscale(img, num_output_channels)
 
     return F_t.rgb_to_grayscale(img, num_output_channels)
