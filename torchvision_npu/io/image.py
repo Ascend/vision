@@ -29,6 +29,7 @@ def encode_jpeg(img: torch.Tensor, quality: int = 75) -> torch.Tensor:
             _log_api_usage_once(encode_jpeg)
         if quality < 1 or quality > 100:
             raise ValueError("Image quality should be a positive number between 1 and 100")
+        img = img.unsqueeze(0)
         return torch.ops.torchvision._encode_jpeg_aclnn(img, quality)
 
     return torchvision.io.image.encode_jpeg_ori(img, quality)
