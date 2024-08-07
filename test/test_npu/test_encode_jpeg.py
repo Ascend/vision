@@ -12,13 +12,13 @@ class TestEncodeJpeg(TestCase):
     def test_encode_jpeg(self):
         path = "../Data/cat/cat.0001.jpg"
         cpu_input = torchvision.datasets.folder.pil_loader(path)
-        cpu_input = torch.tensor(np.array(cpu_input)).permute(2, 0, 1).unsqueeze(0)
+        cpu_input = torch.tensor(np.array(cpu_input)).permute(2, 0, 1)
         npu_input = cpu_input.npu(non_blocking=True)
+        quality = 50
 
         torch.npu.set_compile_mode(jit_compile=False)
         torch.ops.torchvision._dvpp_init()
 
-        quality = 50
         npu_output = torchvision.io.image.encode_jpeg(npu_input, quality)
         self.assertEqual(npu_output.device.type, 'npu')
 
@@ -30,7 +30,7 @@ class TestEncodeJpeg(TestCase):
             f.seek(0)
             image_shape = extract_jpeg_shape(f)
             output = torch.ops.torchvision._decode_jpeg_aclnn(
-                npu_output, image_shape=image_shape, channels=3)
+                npu_output, image_shape=image_shape, channels=3).squeeze(0)
             self.assertEqual(npu_input.shape, output.shape)
 
 
