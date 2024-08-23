@@ -24,7 +24,6 @@ class TestResize(TestCase):
             npu_output = transforms.Resize((224, 224), interpolation)(npu_input).cpu().squeeze(0)
             self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
-    @unittest.expectedFailure
     def test_resize_vision_multi_float_nearest(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -64,7 +63,6 @@ class TestResize(TestCase):
         npu_output = transforms.Resize((224, 224), interpolation)(npu_input).cpu()
         self.assert_acceptable_deviation(npu_output, cpu_output, 2 / 255)
 
-    @unittest.expectedFailure
     def test_resize_vision_multi_uint8_nearest(self):
         torch.ops.torchvision._dvpp_init()
 

@@ -49,6 +49,7 @@ def patch_transform_methods():
     torchvision.transforms.functional.to_tensor = to_tensor
     torchvision.transforms.functional.pil_to_tensor = pil_to_tensor
     torchvision.transforms.functional.vflip = vflip
+    setattr(torchvision.transforms.functional, "resize_ori", torchvision.transforms.functional.resize)
     torchvision.transforms.functional.resize = resize
     torchvision.transforms.functional.crop = crop
     torchvision.transforms.functional.center_crop = center_crop
@@ -373,7 +374,7 @@ def resize(
     size: List[int],
     interpolation: InterpolationMode = InterpolationMode.BILINEAR,
     max_size: Optional[int] = None,
-    antialias: Optional[Union[str, bool]] = "warn",
+    antialias: Optional[Union[str, bool]] = None,
 ) -> Tensor:
     r"""Resize the input image to the given size.
     If the image is torch Tensor, it is expected
@@ -435,6 +436,15 @@ def resize(
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resize)
 
+    if antialias is None:
+        if torchvision.__version__ >= '0.17.0':
+            antialias = True
+        else:
+            antialias = "warn"
+
+    if torchvision.get_image_backend() != 'cv2':
+        return F.resize_ori(img, size, interpolation, max_size, antialias)
+
     if isinstance(interpolation, int):
         interpolation = F._interpolation_modes_from_int(interpolation)
     elif not isinstance(interpolation, InterpolationMode):
@@ -461,30 +471,14 @@ def resize(
     if [image_height, image_width] == output_size:
         return img
 
-    if torchvision.get_image_backend() == 'cv2':
-        if not isinstance(img, np.ndarray):
-            raise TypeError(
-                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
-        if interpolation not in cv2_interpolation_mapping:
-            raise TypeError("Opencv does not support box and hamming interpolation")
-        else:
-            cv2_interpolation = cv2_interpolation_mapping[interpolation]
-            return F_cv2.resize(img, size=output_size, interpolation=cv2_interpolation)
-
-    antialias = F._check_antialias(img, antialias, interpolation)
-
-    if not isinstance(img, torch.Tensor):
-        if antialias is False:
-            warnings.warn("Anti-alias option is always applied for PIL Image input. Argument antialias is ignored.")
-        pil_interpolation = F.pil_modes_mapping[interpolation]
-        return F_pil.resize(img, size=output_size, interpolation=pil_interpolation)
-
-    if img.device.type == 'npu':
-        if interpolation not in _npu_interpolation_mode_mapping:
-            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
-        return F_npu._resize(img, size=output_size, interpolation=_npu_interpolation_mode_mapping[interpolation])
-
-    return F_t.resize(img, size=output_size, interpolation=interpolation.value, antialias=antialias)
+    if not isinstance(img, np.ndarray):
+        raise TypeError(
+            "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+    if interpolation not in cv2_interpolation_mapping:
+        raise TypeError("Opencv does not support box and hamming interpolation")
+    else:
+        cv2_interpolation = cv2_interpolation_mapping[interpolation]
+    return F_cv2.resize(img, size=output_size, interpolation=cv2_interpolation)
 
 
 def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
