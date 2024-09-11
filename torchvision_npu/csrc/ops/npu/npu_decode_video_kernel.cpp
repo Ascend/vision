@@ -275,6 +275,8 @@ int64_t dvpp_sys_exit()
 
 int64_t dvpp_vdec_create_chnl(int64_t pType)
 {
+    TORCH_CHECK((pType == 96) || (pType == 265), // H264:96 H265:265
+        "invalid pType ", pType, ", should be H264:96, H265:265");
     uint32_t chn = 0;
     int32_t ret = VideoDecode::GetInstance().GetUnusedChn(chn);
     TORCH_CHECK(ret == 0, "get unused chn failed");
