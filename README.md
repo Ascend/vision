@@ -17,8 +17,8 @@
 **前提条件**
 - 需完成CANN开发或运行环境的安装，具体操作请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000002.html)》。
 - 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch 。
+- 昇腾软件栈需要安装的版本请参考[版本配套表](#版本配套表)
 - Python支持版本为3.8.X，3.9.X，3.10.X，PyTorch支持版本为2.1.0, Torchvision支持版本为0.16.0。
-
 
 **安装步骤**
 
@@ -42,6 +42,7 @@
    ```
 
 2. 编译安装Torchvision Adapter插件。
+   使用最新版本，可拉取对应分支最新代码编译安装，稳定版本可以切换到对应分支的tag, 参考[版本配套表](#版本配套表)。
 
    按照以下命令进行编译安装。
 
@@ -49,9 +50,11 @@
     # 下载Torchvision Adapter代码，进入插件根目录
     git clone https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
-    git checkout master
+    git checkout v0.16.0-6.0.rc2
     # 安装依赖库
     pip3 install -r requirement.txt
+    # 初始化CANN环境变量
+    source /usr/local/Ascend/ascend-toolkit/set_env.sh # Default path, change it if needed.
     # 编包
     python setup.py bdist_wheel
     # 安装
@@ -69,6 +72,7 @@
     # Default path, change it if needed.
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
    ```
+   注：docker中运行使用dvpp功能，需要映射`/dev/dvpp_cmdlist`设备文件
 
 ## NPU 适配。
 
@@ -188,72 +192,18 @@
 
 1. 脚本适配。
 
-   通过以下方式使能DVPP加速，在导入torchvision相关包后导入torchvision_npu包，在构造dataset前设置图像处理后端为npu：
-   ```python
+   通过以下方式使能DVPP加速，在导入torchvision相关包后导入torchvision_npu包。
+```python
    # 使能DVPP图像处理后端
    ...
+   import torch
+   import torch_npu
    import torchvision
    import torchvision_npu # 导入torchvision_npu包
-   import torchvision.datasets as datasets
-   ...
+
    torchvision.set_image_backend('npu') # 设置图像处理后端为npu，即使能DVPP加速
-   ...
-   train_dataset = torchvision.datasets.ImageFolder(...)
-   ...
-   ```
-
-   数据预处理多进程场景下，worker进程默认运行在主进程设置的device上（如无设置默认0）。
-   可通过set_accelerate_npu接口设置worker进程的device，例如：
-   ``` python
-   # 设置worker进程的device_id
-   ...
-   train_dataset = torchvision.datasets.ImageFolder(...)
-   train_dataset.set_accelerate_npu(npu=1) # npu参数表示要设置的device_id
-   ...
-   ```
-
-   部分网络脚本的ImageFolder中不包括ToTensor，DataLoader中collate_fn使用自定义的fast_collate，进行数据从PIL.Image.Imgae对象到torch.Tensor的转换。此时，使用DVPP加速需要关闭fast_collate使用默认的defualt_collate。
-   ```python
-   ''' 用户脚本中自定义的collate函数 '''
-   def fast_collate(batch):
-      imgs = [img[0] for img in batch]
-      targets = torch.tensor([target[1] for target in batch], dtype=torch.int64)
-      w = imgs[0].size[0]
-      h = imgs[0].size[1]
-      tensor = torch.zeros((len(imgs), 3, h, w), dtype=torch.uint8)
-      for i, img in enumerate(imgs):
-         nump_array = np.asarray(img, dtype=np.uint8)
-         if nump_array.ndim < 3:
-               nump_array = np.expand_dims(nump_array, axis=-1)
-         # 如果此处没有进行nump_array从(H, W, C)到(C, H, W)的转换，那么转换会放在训练中
-         nump_array = np.rollaxis(nump_array, 2)
-         tensor[i] += torch.from_numpy(nump_array)
-   
-      return tensor, targets
-   ...
-   train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler,
-        # collate_fn=fast_collate, drop_last=True)
-        drop_last=True) # 使用collate_fn的默认defualt_collate
-   ...
-         if 'npu' in args.device:
-               # images = images.npu(non_blocking=True).permute(0, 3, 1, 2).to(torch.float).sub(mean).div(std)
-               # 如果轴转换放在训练中，使用DVPP加速时需要去掉
-               images = images.npu(non_blocking=True).to(torch.float).sub(mean).div(std)
-               target = target.npu(non_blocking=True)
-   ...
-   ```
-
-   如果脚本中有多个dataset，希望一些dataset使用DVPP加速，一些使用原生处理，只需要在对应dataset构造前设置相应的处理后端，如：
-   ```python
-   ...
-   torchvision.set_image_backend('npu') # 设置dataset1的图像处理后端为npu
-   dataset1 = torchvision.datasets.ImageFolder(...)
-   ...
-   torchvision.set_image_backend('PIL') # 设置dataset2的图像处理后端为PIL
-   dataset2 = torchvision.datasets.ImageFolder(...)
-   ...
+   npu_input = torch.randint(0, 256, (4, 3, 480, 960), dtype=torch.uint8).npu()
+   output = torchvision.transforms.functional.center_crop(npu_input, (100, 200))
    ```
 
 2. 执行单元测试脚本。
@@ -270,17 +220,16 @@
 
    **表 2**  DVPP支持功能列表
 
-   | datasets/transforms/io      | functional       | 处理结果是否和pillow完全一致 |    限制                 |
+   | datasets/transforms/io      | functional       | 处理结果是否和社区接口一致 |    限制                 |
    |----------------------|------------------|--------------------|------------------------------  |
-   | default_loader  |    | √                        | JPEG图像分辨率: 6x4~32768x32768   |
-   | ToTensor             | to_tensor        | √                        | 分辨率: 6x4~4096x8192     |
+   | default_loader  |    | 输出为NPU tensor，一般与to_tensor搭配使用                        | JPEG图像分辨率: 6x4~32768x32768   |
+   | ToTensor             | to_tensor        | 支持四维tensor输入，一般与default_loader搭配使用                 | 分辨率: 6x4~4096x8192     |
    | Normalize            | normalize        | √                        | 分辨率: 6x4~4096x8192     |
-   | Resize               | resize           | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
    | CenterCrop<br>FiveCrop<br>TenCrop | crop      | √                        | 分辨率: 6x4~32768x32768   |
    | Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充宽度支持范围[0,2048] |
    | RandomHorizontalFlip | hflip            | √                        | 分辨率: 6x4~4096x8192     |
    | RandomVerticalFlip   | vflip            | √                        | 分辨率: 6x4~4096x8192     |
-   | RandomResizedCrop<br>RandomSizedCrop | resized_crop     | 底层实现有差异，误差±1左右 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
+   | RandomResizedCrop<br>RandomSizedCrop | resized_crop     | BILINEAR和BICUBIC: 误差+1左右。其他插值模式无法对标 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
    | ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_contrast  | 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
@@ -289,19 +238,12 @@
    | RandomAffine         | affine           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
    | RandomPerspective    | perspective      | 底层实现有差异 | 分辨率: 6x4~4096x8192 |
    | RandomRotation       | rotate           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
-   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | √ | 分辨率: 6x4~4096x8192 |
+   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | float误差±1/255, uint8误差±1 | 分辨率: 6x4~4096x8192 |
    | RandomPosterize      | posterize    | √ | 分辨率: 6x4~4096x8192 |
-   | RandomSolarize       | solarize     | √ | 分辨率: 6x4~4096x8192 |
+   | RandomSolarize       | solarize     | float误差在±0.1，uint对标 | 分辨率: 6x4~4096x8192 |
    | RandomInvert         | invert       | √ | 分辨率: 6x4~4096x8192 |
    | encode_jpeg          |              |   | 分辨率: 32x32~8192x8192<br>输出宽高需要2对齐 |
 
-4. 说明。
-
-   只有通过torchvision.datasets.ImageFolder/DatasetFolder构造的dataset才可以使能DVPP加速。
-
-   torchvision.transforms方法对外接口不变，只支持NCHW(N=1)格式的npu tensor作为入参，其他限制见表2。
-
-   物理机场景下，一个device上最多支持64个用户进程，即单p数据预处理进程数最多设置63。
 
 ## 使用DVPP视频处理后端
 
@@ -356,6 +298,13 @@
    | ps_roi_pool   | -    |
    | roi_align     | √    |
    | roi_pool      | √    |
+
+# 版本配套表
+
+|Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|
+| -----------------------|----------------------- | ------------- | ------------------------ | ------------- | -----| ---------|
+| master |     v0.16.0-6.0.rc2        |     2.1.0     |   2.1.0.post6 | 0.16.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
+| v0.12.0-dev |     v0.12.0-6.0.rc2        |     1.11.0     |   1.11.0.post14 | 0.12.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
 
 **Torchvision Adapter适配NPU的方案见[适配指导](docs/适配指导.md)。**
 

@@ -40,6 +40,7 @@ def add_datasets_folder():
     torchvision.__name__ = 'torchvision_npu'
     torchvision.datasets.DatasetFolder = DatasetFolder
     torchvision.datasets.ImageFolder = ImageFolder
+    torchvision.datasets.folder.default_loader = default_loader
 
 
 def _assert_image_3d(img: torch.Tensor):
