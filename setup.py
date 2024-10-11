@@ -90,7 +90,6 @@ def get_extensions():
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
         "-Wl,-z,now",
-        "-Wl,--disable-new-dtags,--rpath"
     ]
 
     DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
