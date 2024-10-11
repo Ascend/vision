@@ -63,7 +63,7 @@ def read_video(
     """
 
     if torchvision.get_video_backend() == 'npu':
-        return IO_npu.video._read_video(filename, start_pts, end_pts, pts_unit, output_format)
+        return IO_npu._video._read_video(filename, start_pts, end_pts, pts_unit, output_format)
     return IO.read_video_ori(filename, start_pts, end_pts, pts_unit, output_format)
 
 

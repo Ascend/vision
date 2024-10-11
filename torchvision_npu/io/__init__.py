@@ -1,5 +1,5 @@
-from torchvision_npu.io.image import patch_io_image
-from torchvision_npu.io.video import patch_io_video
+from torchvision_npu.io._image import patch_io_image
+from torchvision_npu.io._video import patch_io_video
 
 
 def patch_io_methods():

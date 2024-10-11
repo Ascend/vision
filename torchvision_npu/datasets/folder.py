@@ -36,7 +36,7 @@ _npu_accelerate_list = [
     "RandomSolarize"]
 
 
-def add_datasets_folder():
+def _add_datasets_folder():
     torchvision.__name__ = 'torchvision_npu'
     torchvision.datasets.DatasetFolder = DatasetFolder
     torchvision.datasets.ImageFolder = ImageFolder

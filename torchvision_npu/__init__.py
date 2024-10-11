@@ -15,14 +15,14 @@
 import torch
 import torch_npu
 import torchvision
-from torchvision_npu.datasets import add_datasets_folder
-from torchvision_npu.ops.deform_conv import patch_deform_conv
+from torchvision_npu.datasets import _add_datasets_folder
+from torchvision_npu.ops._deform_conv import patch_deform_conv
 
-from .extensions import _HAS_OPS
-from .ops.roi_pool import patch_roi_pool
-from .transforms.functional import patch_transform_methods
+from ._extensions import _HAS_OPS
+from .ops._roi_pool import patch_roi_pool
+from .transforms._functional import patch_transform_methods
 from .io import patch_io_methods
-from .utils.dataloader import add_dataloader_method
+from .utils._dataloader import add_dataloader_method
 from .version import __version__ as __version__
 
 
@@ -110,16 +110,16 @@ def _get_video_backend():
     return _video_backend
 
 
-def patch_init_methods():
+def _patch_init_methods():
     torchvision.set_image_backend = _set_image_backend
     torchvision.get_image_backend = _get_image_backend
     torchvision.set_video_backend = _set_video_backend
     torchvision.get_video_backend = _get_video_backend
 
 
-def apply_class_patches():
-    patch_init_methods()
-    add_datasets_folder()
+def _apply_class_patches():
+    _patch_init_methods()
+    _add_datasets_folder()
     patch_transform_methods()
     patch_io_methods()
     patch_roi_pool()
@@ -127,4 +127,4 @@ def apply_class_patches():
     add_dataloader_method()
 
 
-apply_class_patches()
+_apply_class_patches()

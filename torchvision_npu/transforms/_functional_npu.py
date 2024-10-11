@@ -18,7 +18,7 @@ import numpy as np
 import torch
 import torch_npu
 from torch import Tensor
-from .utils import deal_with_tensor_batch
+from ._utils import deal_with_tensor_batch
 
 _interpolation_crop_and_resize_int2str = {0: "bilinear", 1: "nearest", 2: "bicubic"}
 _interpolation_resize_int2str = {0: "linear", 1: "nearest", 2: "cubic"}

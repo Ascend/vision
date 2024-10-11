@@ -24,7 +24,7 @@ try:
 except ImportError:
     accimage = None
 
-from .utils import (
+from ._utils import (
     MAX_VALUES_BY_DTYPE,
     clip,
     preserve_shape,
