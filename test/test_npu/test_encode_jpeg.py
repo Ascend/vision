@@ -5,7 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision
 import torchvision_npu
-from torchvision_npu.datasets.decode_jpeg import extract_jpeg_shape
+from torchvision_npu.datasets._decode_jpeg import extract_jpeg_shape
 
 
 class TestEncodeJpeg(TestCase):

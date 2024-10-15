@@ -10,7 +10,7 @@ class TestCrop(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.CenterCrop((100, 200))(cpu_input)
 
@@ -22,7 +22,7 @@ class TestCrop(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.FiveCrop((100))(cpu_input)
 
@@ -36,7 +36,7 @@ class TestCrop(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         for is_vflip in [False, True]:
             cpu_output = transforms.TenCrop(50, is_vflip)(cpu_input)

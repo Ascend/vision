@@ -10,7 +10,7 @@ class TestFlip(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.RandomHorizontalFlip(p=1)(cpu_input)
 
@@ -22,7 +22,7 @@ class TestFlip(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.RandomVerticalFlip(p=1)(cpu_input)
 

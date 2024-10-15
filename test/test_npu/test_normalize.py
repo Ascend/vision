@@ -23,7 +23,7 @@ class TestNormalize(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         npu_input = transforms.ToTensor()(npu_input)
         cpu_input = npu_input.cpu()
         mean = [0.485, 0.456, 0.406] 

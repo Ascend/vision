@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torchvision_npu.datasets.folder import _add_datasets_folder
+from torchvision_npu.datasets._folder import _add_datasets_folder

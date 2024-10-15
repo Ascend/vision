@@ -15,19 +15,19 @@ class TestDecodeJpeg(TestCase):
         cpu_output = torch.tensor(np.array(cpu_output)).permute(2, 0, 1).unsqueeze(0)
 
         torch.npu.set_compile_mode(jit_compile=True)
-        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
+        npu_output = torchvision_npu.datasets._folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 
         torch.npu.set_compile_mode(jit_compile=False)
         torch.ops.torchvision._dvpp_init()
-        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
+        npu_output = torchvision_npu.datasets._folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 
     def test_decode_bmp(self):
         path = "../Data/bmp/pic.0001.bmp"
         cpu_output = torchvision.datasets.folder.pil_loader(path)
         cpu_output = torch.tensor(np.array(cpu_output)).permute(2, 0, 1).unsqueeze(0)
-        npu_output = torchvision_npu.datasets.folder._npu_loader(path).cpu()
+        npu_output = torchvision_npu.datasets._folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 
 if __name__ == '__main__':

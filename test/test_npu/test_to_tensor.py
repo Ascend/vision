@@ -27,7 +27,7 @@ class TestToTensor(TestCase):
 
         path = "../Data/dog/dog.0001.jpg"
         cpu_input = torchvision.datasets.folder.pil_loader(path)
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
 
         cpu_output = self.cpu_op_exec(cpu_input)
 

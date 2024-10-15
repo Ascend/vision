@@ -37,7 +37,7 @@ class TestRotate(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 
         angle = -41.3
@@ -55,7 +55,7 @@ class TestRotate(TestCase):
         torch.ops.torchvision._dvpp_init()
 
         path = "../Data/dog/dog.0001.jpg"
-        npu_input = torchvision_npu.datasets.folder._npu_loader(path)
+        npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 
         angle = -41.3
