@@ -43,18 +43,34 @@ void roi_pool_forward_kernel_impl(
     at::Tensor roi_actual_num = at::empty({}, rois.options().dtype(at::kInt));
 
     at_npu::native::OpCommand cmd;
-    cmd.Name("RoiPoolingWithArgMax")
-        .Input(input)
-        .Input(rois)
-        .Input(roi_actual_num)
-        .Output(output)
-        .Output(argmax)
-        .Attr("pooled_h", pooled_height_64)
-        .Attr("pooled_w", pooled_width_64)
-        .Attr("spatial_scale_h", spatial_scale)
-        .Attr("spatial_scale_w", spatial_scale)
-        .Attr("pool_channel", pooled_channel)
-        .Run();
+    if (input.size(1) % 16 == 0) {
+        cmd.Name("RoiPoolingWithArgMax")
+            .Input(input)
+            .Input(rois)
+            .Input(roi_actual_num)
+            .Output(output)
+            .Output(argmax)
+            .Attr("pooled_h", pooled_height_64)
+            .Attr("pooled_w", pooled_width_64)
+            .Attr("spatial_scale_h", spatial_scale)
+            .Attr("spatial_scale_w", spatial_scale)
+            .Attr("pool_channel", pooled_channel)
+            .Run();
+    } else {
+        cmd.Name("RoiPoolingWithArgMax")
+            .Input(input)
+            .Input(rois)
+            .Input(roi_actual_num)
+            .Output(output)
+            .Output(argmax)
+            .Attr("pooled_h", pooled_height_64)
+            .Attr("pooled_w", pooled_width_64)
+            .Attr("spatial_scale_h", spatial_scale)
+            .Attr("spatial_scale_w", spatial_scale)
+            .Attr("pool_channel", pooled_channel)
+            .Attr("_exclude_engines", (string) "AiCore")
+            .Run();
+    }
 }
 
 template <typename T>
@@ -105,6 +121,12 @@ std::tuple<at::Tensor, at::Tensor> roi_pool_forward_kernel(
 
     at::CheckedFrom c = "roi_pool_forward_kernel";
     at::checkAllSameType(c, {input_t, rois_t});
+
+    TORCH_CHECK(input.numel() != 0 && rois.numel() != 0,
+        "Expected input and rois to be non-empty tensors, but got empty input and/or rois.")
+
+    TORCH_CHECK(input.dim() > 3, "tensor input's dimension must be greater than 3, "
+        "but got Tensor of dimension ", input.dim())
 
     int num_rois = rois.size(0);
     int channels = input.size(1);

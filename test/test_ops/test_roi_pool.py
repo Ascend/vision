@@ -22,6 +22,15 @@ class TestROIPool(TestCase):
         self.assertEqual(y_autocast.dtype, torch.float16)
         self.assertEqual(y, y_autocast)
 
+    def test_roi_pool_invalid_params(self):
+        input_data = torch.randn((5, 5, 0, 0)).npu()
+        rois = torch.randn((5, 5, 0, 0)).npu()
+        output_size = [232, 813]
+        with self.assertRaisesRegex(
+            RuntimeError, "Expected input and rois to be non-empty tensors"
+        ):
+            torchvision.ops.roi_pool(input_data, rois, output_size)
+
 
 if __name__ == '__main__':
     run_tests()
