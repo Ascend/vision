@@ -28,6 +28,7 @@ from torchvision.utils import _log_api_usage_once
 import torchvision
 from torchvision import io as IO
 import torchvision_npu
+from torchvision_npu._utils import PathManager
 from torchvision_npu import io as IO_npu
 
 
@@ -269,8 +270,8 @@ def _read_video(
     if output_format not in ("THWC", "TCHW"):
         raise ValueError(f"output_format should be either 'THWC' or 'TCHW', got {output_format}.")
 
-    if not os.path.exists(filename):
-        raise RuntimeError(f"File not found: {filename}")
+    filepath = os.path.realpath(filename)
+    PathManager.check_directory_path_readable(filepath)
 
     torchvision.io.video._check_av_available()
 
@@ -287,7 +288,7 @@ def _read_video(
     audio_timebase = torchvision.io._video_opt.default_timebase
 
     try:
-        with av.open(filename, metadata_errors="ignore") as container:
+        with av.open(filepath, metadata_errors="ignore") as container:
             if container.streams.audio:
                 audio_timebase = container.streams.audio[0].time_base
 
@@ -297,7 +298,7 @@ def _read_video(
                                        f"Only support: h264, hevc.")
 
                 vframes = _read_from_stream_dvpp(
-                    filename,
+                    filepath,
                     container,
                     start_pts,
                     end_pts,

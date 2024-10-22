@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys
+import os
 from struct import pack
 from typing import Any, Tuple, Callable, Optional
 
@@ -24,6 +25,8 @@ import torch_npu
 import torchvision
 from torchvision.datasets import folder as fold
 from torchvision_npu.datasets._decode_jpeg import extract_jpeg_shape
+from torchvision_npu._utils import PathManager
+
 
 _npu_set_first = True
 
@@ -121,6 +124,8 @@ class DatasetFolder(fold.DatasetFolder):
 
 
 def _cv2_loader(path: str) -> Any:
+    path = os.path.realpath(path)
+    PathManager.check_directory_path_readable(path)
     with open(path, 'rb') as f:
         img = Image.open(f)
         img_rgb = img.convert('RGB')
@@ -129,6 +134,8 @@ def _cv2_loader(path: str) -> Any:
 
 
 def _npu_loader(path: str) -> Any:
+    path = os.path.realpath(path)
+    PathManager.check_directory_path_readable(path)
     with open(path, "rb") as f:
         f.seek(0)
         prefix = f.read(16)
