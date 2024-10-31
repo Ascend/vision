@@ -50,7 +50,7 @@
     # 下载Torchvision Adapter代码，进入插件根目录
     git clone https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
-    git checkout v0.16.0-6.0.rc2
+    git checkout v0.16.0-6.0.rc3
     # 安装依赖库
     pip3 install -r requirement.txt
     # 初始化CANN环境变量
