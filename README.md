@@ -299,6 +299,42 @@
    | roi_align     | √    |
    | roi_pool      | √    |
 
+
+## 使用CPU进行图像处理
+使用c++多线程实现算子在使用CPU进行图像处理时的性能优化，以达到加速的目的
+1. 脚本适配
+
+   通过以下方式使能CPU多线程加速图像处理，在导入torchvision相关包前导入torchvision_npu包，在使用前设置图像处理后端为`moal`，以Normalize为例，当输入为cpu侧数据类型为`float`时，图像处理后端为`moal`后会使用该优化方案对该算子进行优化
+   ```python
+   # 使用优化后的Normalize
+   ...
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+   torchvision.set_image_backend('moal') # 设置图像处理后端为moal
+   normalize = torchvision.transforms.Normalize(mean, std, inplace)
+   normalize_res = normalize(normalize_input)
+   ...
+   ```
+   
+2. 执行单元测试脚本
+   
+   输出结果OK即为验证成功
+   ```
+   cd test/test_cpu/
+   python -m unittest discover
+   ```
+   
+3. CPU优化算子支持列表以及性能加速情况
+
+   单算子实验结果在arm架构的Atlas训练系列产品上获得，单算子实验的结果在OpenSora1.2中使用1080p的视频数据集进行训练时的单算子时间求平均值获得。CPU优化算子支持列表见表5。
+
+   **表 5**  CPU优化算子支持列表
+      
+   | ops               | 处理结果是否和原生算子完全一致       | 原始单算子时间(ms) | 优化单算子时间(ms) | 加速比         |
+   |-------------------|-----------------------|-------------|-------------|-------------|
+   | to_tensor         | √（只接受uint 8类型的tensor） | 341.24      | 173.15      | 97.08%      |
+   | normalize         | √（只接受float类型的tensor）  | 14.67       | 5.19        | 182.66%     |
 # 版本配套表
 
 |Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|

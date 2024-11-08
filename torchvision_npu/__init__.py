@@ -40,8 +40,8 @@ def _set_image_backend(backend):
             generally faster than PIL, but does not support as many operations.
     """
     global _image_backend
-    if backend not in ["PIL", "accimage", "npu", "cv2"]:
-        raise ValueError(f"Invalid backend '{backend}'. Options are 'npu', 'PIL' , 'cv2' and 'accimage'")
+    if backend not in ["PIL", "accimage", "npu", "cv2", "moal"]:
+        raise ValueError(f"Invalid backend '{backend}'. Options are 'npu', 'PIL' , 'cv2', 'moal' and 'accimage'")
     _image_backend = backend
     if backend == 'npu':
         # Use acldvpp func by default

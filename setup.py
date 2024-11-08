@@ -65,7 +65,8 @@ def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, 'torchvision_npu', 'csrc')
 
-    main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp')) + \
+    main_file = glob.glob(os.path.join(extensions_dir, 'ops', 'cpu', '*.cpp')) + \
+                glob.glob(os.path.join(extensions_dir, 'ops', 'npu', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, 'ops', 'autocast', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, '*.cpp'))
@@ -97,6 +98,8 @@ def get_extensions():
         extra_compile_args += ['-O0', '-g']
         extra_link_args += ['-O0', '-g']
     else:
+        extra_compile_args += ['-O3']
+        extra_compile_args += ['-fopenmp']
         extra_link_args += ['-s']
 
     try:
@@ -126,6 +129,7 @@ def get_extensions():
     ]
 
     return ext_modules
+
 
 package_name = os.environ.get('TORCHVISION_NPU_PACKAGE_NAME', 'torchvision_npu')
 setup(name=package_name,

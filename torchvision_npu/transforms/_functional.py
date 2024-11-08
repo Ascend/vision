@@ -157,6 +157,12 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
     if tensor.device.type == 'npu':
         return F_npu._normalize(tensor, mean, std, inplace)
 
+    if torchvision.get_image_backend() == 'moal':
+        is_float_tensor = tensor.dtype in [torch.bfloat16, torch.float16, torch.float32, torch.float64]
+        if not (is_float_tensor and tensor.device.type == 'cpu'):
+            raise TypeError(f"Normalize moal only support cpu float tensor.")
+        return torch.ops.torchvision.normalize_moal(tensor, mean=mean, std=std, inplace=inplace)
+
     return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
 
 
@@ -268,6 +274,10 @@ def to_tensor(pic) -> Tensor:
     """
     if isinstance(pic, torch.Tensor) and pic.dtype == torch.uint8 and pic.device.type == 'npu':
         return F_npu._to_tensor(pic)
+    if torchvision.get_image_backend() == 'moal':
+        if not (isinstance(pic, torch.Tensor) and pic.dtype == torch.uint8 and pic.device.type == 'cpu'):
+            raise TypeError(f"ToTensor moal only support cpu uint8 tensor input.")
+        return torch.ops.torchvision.to_tensor_moal(pic)
     return F.to_tensor_ori(pic)
 
 
@@ -1435,3 +1445,4 @@ def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
         return F_npu._rgb_to_grayscale(img, num_output_channels)
 
     return F_t.rgb_to_grayscale(img, num_output_channels)
+
