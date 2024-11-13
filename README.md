@@ -38,8 +38,10 @@
    ```
    方法2：pip安装
    ```shell
-   pip install torchvision==0.16.0
+   # 指定官方源安装
+   pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cpu
    ```
+   注：方法2 pip安装可能会有torch和torchvision不匹配问题，出现这种问题时，建议使用方法1 源码编译安装。
 
 2. 编译安装Torchvision Adapter插件。
    使用最新版本，可拉取对应分支最新代码编译安装，稳定版本可以切换到对应分支的tag, 参考[版本配套表](#版本配套表)。
@@ -282,7 +284,44 @@
    | ---------- | -------------------------- | ----------------------- |
    | read_video | 底层实现有差异，误差±3左右 | 仅支持h264/h265编码格式 |
 
+## 数据预处理使用DVPP的限制
+在DVPP使用场景中，如果DVPP搭配Pytorch的Dataloader进行数据预处理，存在如下场景使用限制。
 
+限制：使用dataloader多进程加载数据时（单进程不影响），全局作用域中不能包含涉及NPU初始化的代码, 以下面代码为例。
+   ```python
+   # 此用例当前TORCH_NPU套件不支持
+   ...
+   import torch, torch_npu
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+   # 全局作用域中包含初始化操作
+   torch.npu.set_device(0)
+
+   if __name__ == '__main__':
+      ...
+      torchvision.set_video_backend('npu') # 设置视频处理后端为npu，即使能DVPP加速
+      ...
+      dataloader(...,num_workers=4,....)  # 使用多进程数据预处理
+      ...
+   ```
+规避方法：当使能DVPP加载数据且dataloader中使用多进程情况下，应避免在全局作用域进行涉及NPU初始化的操作，可将相应代码放在主函数中，以下面代码为例。
+   ```python
+   # 规避方法
+   ...
+   import torch, torch_npu
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+
+   if __name__ == '__main__':
+      torch.npu.set_device(0) 
+      ...
+      torchvision.set_video_backend('npu') # 设置视频处理后端为npu，即使能DVPP加速
+      ...
+      dataloader(...,num_workers=4,....)  # 使用多进程数据预处理
+      ...
+   ```
 
 ## NPU算子支持原生算子列表
 

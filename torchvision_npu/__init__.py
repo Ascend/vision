@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import torch
 import torch_npu
 import torchvision
@@ -24,6 +25,13 @@ from .transforms._functional import patch_transform_methods
 from .io import patch_io_methods
 from .utils._dataloader import add_dataloader_method
 from .version import __version__ as __version__
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(asctime)s | %(name)s | %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 _image_backend = "PIL"
@@ -47,10 +55,10 @@ def _set_image_backend(backend):
         # Use acldvpp func by default
         torch.npu.set_compile_mode(jit_compile=False)
         torch.ops.torchvision._dvpp_init()
-    print('transform image backend: ', torchvision.get_image_backend())
+    logger.info('transform image backend: %s', torchvision.get_image_backend())
     if torchvision.get_image_backend() == 'cv2':
-        print('If you use the cv2 backend, must install opencv-python already and the input must be np.ndarray, '
-              'otherwise an exception will be thrown.')
+        logger.info('If you use the cv2 backend, must install opencv-python already and the input must be np.ndarray, '
+                    'otherwise an exception will be thrown.')
 
 
 def _get_image_backend():
@@ -96,7 +104,7 @@ def _set_video_backend(backend):
     elif backend == "npu":
         _init_dvpp_video()
     _video_backend = backend
-    print('transform video backend: ', torchvision.get_video_backend())
+    logger.info('transform video backend: %s', torchvision.get_video_backend())
 
 
 def _get_video_backend():
