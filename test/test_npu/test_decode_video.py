@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import numpy as np
 import torch
 import torch_npu
@@ -7,7 +9,9 @@ import cv2
 import av
 import torchvision_npu
 
+
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class TestDecodeVideo(TestCase):
@@ -32,7 +36,7 @@ class TestDecodeVideo(TestCase):
         return cpu_results
 
     def test_decode_video_h264_one_frame(self):
-        path = "../DataVideo/mountain/mountain.0001.h264"
+        path = os.path.join(TEST_DIR, "DataVideo/mountain/mountain.0001.h264")
 
         # pyav decode
         cpu_results = self._get_frames_from_pyav(path)
@@ -66,7 +70,7 @@ class TestDecodeVideo(TestCase):
         self.assertEqual(ret, 0)
 
     def test_decode_video_h264_multi_frame(self):
-        path = "../DataVideo/billiards/billiards.0001.mp4"
+        path = os.path.join(TEST_DIR, "DataVideo/billiards/billiards.0001.mp4")
 
         # pyav decode
         cpu_results = self._get_frames_from_pyav(path)
@@ -103,7 +107,7 @@ class TestDecodeVideo(TestCase):
         self.assertEqual(ret, 0)
 
     def test_decode_video_h265_one_frame(self):
-        path = "../DataVideo/mountain/mountain.0001.h265"
+        path = os.path.join(TEST_DIR, "DataVideo/mountain/mountain.0001.h265")
 
         # pyav decode
         cpu_results = self._get_frames_from_pyav(path)

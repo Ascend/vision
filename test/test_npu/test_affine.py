@@ -1,4 +1,6 @@
+import os
 import unittest
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import run_tests
@@ -37,7 +39,7 @@ class TestAffine(TestCase):
     def test_affine_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(Path(__file__).resolve().parents[1], "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 

@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import unittest
 import torch
 import torch_npu
@@ -7,6 +9,9 @@ from torchvision.transforms import InterpolationMode
 
 import torchvision_npu
 from torchvision_npu.testing.test_deviation_case import TestCase
+
+
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class RotateAttr:
@@ -36,7 +41,7 @@ class TestRotate(TestCase):
     def test_rotate_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 
@@ -54,7 +59,7 @@ class TestRotate(TestCase):
     def test_rotate_expand_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 

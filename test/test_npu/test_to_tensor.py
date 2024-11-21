@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -5,7 +7,9 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision_npu
 
+
 torch_npu.npu.current_stream().set_data_preprocess_stream(True)
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class TestToTensor(TestCase):
@@ -25,7 +29,7 @@ class TestToTensor(TestCase):
     def test_to_tensor(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         cpu_input = torchvision.datasets.folder.pil_loader(path)
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
 

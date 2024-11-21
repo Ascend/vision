@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -5,10 +7,13 @@ import torchvision
 import torchvision_npu
 
 
+TEST_DIR = Path(__file__).resolve().parents[1]
+
+
 class TestDefaultLoader(TestCase):
 
     def test_default_loader(self):
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         torchvision.set_image_backend('PIL')
         img_output = torchvision.datasets.folder.default_loader(path)
         cpu_output = torchvision.transforms.functional.to_tensor(img_output)

@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import unittest
 import torch
 import torch_npu
@@ -9,11 +11,14 @@ import torchvision_npu
 from torchvision_npu.testing.test_deviation_case import TestCase
 
 
+TEST_DIR = Path(__file__).resolve().parents[1]
+
+
 class TestResize(TestCase):
     def test_resize_vision_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
 

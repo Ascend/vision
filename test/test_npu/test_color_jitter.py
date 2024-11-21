@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import numpy as np
 import torch
 import torch_npu
@@ -8,10 +10,13 @@ import torchvision_npu
 from torchvision_npu.testing.test_deviation_case import TestCase
 
 
+TEST_DIR = Path(__file__).resolve().parents[1]
+
+
 class TestColorJitter(TestCase):
     def test_color_jitter(self):
         torch.npu.set_compile_mode(jit_compile=True)
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         npu_output = transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)(npu_input)
         self.assertEqual(npu_output.device.type, 'npu')
@@ -20,7 +25,7 @@ class TestColorJitter(TestCase):
 
     def test_adjust_hue_single(self):
         torch.ops.torchvision._dvpp_init()
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         factor = np.random.uniform(-0.5, 0.5)
@@ -30,7 +35,7 @@ class TestColorJitter(TestCase):
 
     def test_adjust_contrast_single(self):
         torch.ops.torchvision._dvpp_init()
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         factor = np.random.uniform(0, 100)
@@ -40,7 +45,7 @@ class TestColorJitter(TestCase):
 
     def test_adjust_brightness_single(self):
         torch.ops.torchvision._dvpp_init()
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         factor = np.random.uniform(0, 100)
@@ -50,7 +55,7 @@ class TestColorJitter(TestCase):
     
     def test_adjust_saturation_single(self):
         torch.ops.torchvision._dvpp_init()
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         factor = np.random.uniform(0, 100)

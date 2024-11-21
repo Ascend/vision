@@ -1,15 +1,21 @@
+import os
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision.transforms as transforms
 import torchvision_npu
+from torchvision_npu.testing.test_deviation_case import TestCase
+
+
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class TestCrop(TestCase):
     def test_center_crop_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.CenterCrop((100, 200))(cpu_input)
@@ -21,7 +27,7 @@ class TestCrop(TestCase):
     def test_five_crop_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         cpu_output = transforms.FiveCrop((100))(cpu_input)
@@ -35,7 +41,7 @@ class TestCrop(TestCase):
     def test_ten_crop_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu().squeeze(0)
         for is_vflip in [False, True]:

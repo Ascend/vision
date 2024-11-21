@@ -1,8 +1,13 @@
+import os
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision.transforms as transforms
 import torchvision_npu
+
+
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class TestNormalize(TestCase):
@@ -22,7 +27,7 @@ class TestNormalize(TestCase):
     def test_normalize_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         npu_input = transforms.ToTensor()(npu_input)
         cpu_input = npu_input.cpu()

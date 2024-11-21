@@ -1,9 +1,14 @@
+import os
+from pathlib import Path
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision.transforms as transforms
 import torchvision_npu
 from torchvision_npu.testing.test_deviation_case import TestCase
+
+
+TEST_DIR = Path(__file__).resolve().parents[1]
 
 
 class TestSolarize(TestCase):
@@ -21,7 +26,7 @@ class TestSolarize(TestCase):
     def test_solarize_single(self):
         torch.ops.torchvision._dvpp_init()
 
-        path = "../Data/dog/dog.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/dog/dog.0001.jpg")
         npu_input = torchvision_npu.datasets._folder._npu_loader(path)
         cpu_input = npu_input.cpu()
 

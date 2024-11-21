@@ -1,4 +1,6 @@
+import os
 import io
+from pathlib import Path
 import numpy as np
 import torch
 import torch_npu
@@ -8,9 +10,12 @@ import torchvision_npu
 from torchvision_npu.datasets._decode_jpeg import extract_jpeg_shape
 
 
+TEST_DIR = Path(__file__).resolve().parents[1]
+
+
 class TestEncodeJpeg(TestCase):
     def test_encode_jpeg(self):
-        path = "../Data/cat/cat.0001.jpg"
+        path = os.path.join(TEST_DIR, "Data/cat/cat.0001.jpg")
         cpu_input = torchvision.datasets.folder.pil_loader(path)
         cpu_input = torch.tensor(np.array(cpu_input)).permute(2, 0, 1)
         npu_input = cpu_input.npu(non_blocking=True)
