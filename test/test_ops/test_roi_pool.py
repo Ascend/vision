@@ -1,6 +1,7 @@
 import unittest
 import torch
 import torch.nn as nn
+
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 import torchvision

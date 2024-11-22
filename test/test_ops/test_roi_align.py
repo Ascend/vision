@@ -2,6 +2,7 @@ import unittest
 import torch
 import torch.nn as nn
 from torch._subclasses.fake_tensor import FakeTensorMode
+
 import torch_npu
 from torch_npu.testing.testcase import run_tests
 import torchvision_npu
