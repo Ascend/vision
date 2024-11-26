@@ -17,13 +17,14 @@ import os
 import threading
 import itertools
 import queue
+from typing import Generic
 import torch
 import torch.distributed as dist
 from torch.utils.data import _utils
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter as SrcSingleProcessDataLoaderIter
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter as SrcMultiProcessingDataLoaderIter
 from torch.utils.data.dataloader import DataLoader as SrcDataLoader
-from torch.utils.data.dataloader import _DatasetKind, _share_dist_seed, _get_distributed_settings
+from torch.utils.data.dataloader import _DatasetKind, _share_dist_seed, _get_distributed_settings, T_co
 from torch.utils.data._utils.pin_memory import _pin_memory_loop
 from torch.utils.data.datapipes.datapipe import IterDataPipe, MapDataPipe
 import torch.multiprocessing as multiprocessing
@@ -50,7 +51,7 @@ def npu_worker_loop(*args, device_id=None):
     _utils.worker._worker_loop(*args)
 
 
-class DataLoader(SrcDataLoader):
+class DataLoader(SrcDataLoader[T_co], Generic[T_co]):
     def _get_iterator(self) -> '_BaseDataLoaderIter':
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIter(self)

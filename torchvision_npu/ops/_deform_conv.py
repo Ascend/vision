@@ -11,7 +11,7 @@ import torch_npu
 
 
 def deform_conv2d(
-    conv_input: Tensor,
+    input: Tensor,
     offset: Tensor,
     weight: Tensor,
     bias: Optional[Tensor] = None,
@@ -27,16 +27,16 @@ def deform_conv2d(
     use_mask = mask is not None
 
     if mask is None:
-        mask = torch.zeros((conv_input.shape[0], 0), device=conv_input.device, dtype=conv_input.dtype)
+        mask = torch.zeros((input.shape[0], 0), device=input.device, dtype=input.dtype)
 
     if bias is None:
-        bias = torch.zeros(out_channels, device=conv_input.device, dtype=conv_input.dtype)
+        bias = torch.zeros(out_channels, device=input.device, dtype=input.dtype)
 
     stride_h, stride_w = _pair(stride)
     pad_h, pad_w = _pair(padding)
     dil_h, dil_w = _pair(dilation)
     weights_h, weights_w = weight.shape[-2:]
-    _, n_in_channels, in_h, in_w = conv_input.shape
+    _, n_in_channels, in_h, in_w = input.shape
 
     n_offset_grps = offset.shape[1] // (2 * weights_h * weights_w)
     n_weight_grps = n_in_channels // weight.shape[1]
@@ -48,9 +48,9 @@ def deform_conv2d(
             "Got offset.shape[1]={}, while 2 * weight.size[2] * weight.size[3]={}".format(
                 offset.shape[1], 2 * weights_h * weights_w))
 
-    if not conv_input.is_npu:
+    if not input.is_npu:
         return torch.ops.torchvision.deform_conv2d(
-            conv_input,
+            input,
             weight,
             offset,
             mask,
@@ -63,7 +63,7 @@ def deform_conv2d(
             use_mask,)
     else:
         return npu_deform_conv2d(
-            conv_input,
+            input,
             offset,
             weight,
             bias,

@@ -32,6 +32,14 @@ class TestROIPool(TestCase):
         ):
             torchvision.ops.roi_pool(input_data, rois, output_size)
 
+    def test_roi_pool_kwargs(self):
+        input_data = torch.randn(1, 512, 7, 7)
+        rois = torch.tensor([[0.0, 0.0, 0.0, 6.0, 6.0]])
+        output_size = (6, 6)
+        cpu_output = torchvision.ops.roi_pool(input=input_data, boxes=rois, output_size=output_size)
+        npu_output = torchvision.ops.roi_pool(input=input_data.npu(), boxes=rois.npu(), output_size=output_size)
+        self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == '__main__':
     run_tests()

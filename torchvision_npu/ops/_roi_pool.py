@@ -4,7 +4,7 @@ import torchvision
 from torch import Tensor
 
 
-def roi_pool(input_tensor, boxes, output_size, spatial_scale: float = 1.0) -> Tensor:
+def roi_pool(input, boxes, output_size, spatial_scale: float = 1.0) -> Tensor:
     """There are some differences between the native implementation of TorchVision and the implementation
     provided by the NPU operator when calc roi_pool. This can lead to inaccurate calculations.
 
@@ -37,10 +37,10 @@ def roi_pool(input_tensor, boxes, output_size, spatial_scale: float = 1.0) -> Te
     Returns:
         output (Tensor[K, C, output_size[0], output_size[1]])
     """
-    if input_tensor.device.type == "npu":
+    if input.device.type == "npu":
         boxes[:, 1:] = torch.round(boxes[:, 1:] * spatial_scale)
         spatial_scale = 1.0
-    return torchvision.ops.tv_roi_pool(input_tensor, boxes, output_size, spatial_scale)
+    return torchvision.ops.tv_roi_pool(input, boxes, output_size, spatial_scale)
 
 
 def patch_roi_pool():

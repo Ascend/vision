@@ -57,6 +57,7 @@ at::Tensor nms_kernel(
     const at::Tensor& scores,
     double iou_threshold)
 {
+    const c10::OptionalDeviceGuard device_guard(device_of(dets));
     auto result = at::empty({0}, dets.options());
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(dets.scalar_type(), "nms_kernel", [&] {
