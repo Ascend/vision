@@ -26,7 +26,6 @@ class TestPerspective(TestCase):
         output = output.cpu()
         return output
 
-    @unittest.expectedFailure
     def test_perspective_single(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -43,9 +42,8 @@ class TestPerspective(TestCase):
         for interpolation in [InterpolationMode.NEAREST, InterpolationMode.BILINEAR]:
             cpu_output = self.cpu_op_exec(cpu_input, startpoints, endpoints, interpolation, fill)
             npu_output = self.npu_op_exec(npu_input, startpoints, endpoints, interpolation, fill)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+            self.assertRtolEqual(npu_output, cpu_output)
 
-    @unittest.expectedFailure
     def test_perspective_multi_float(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -61,9 +59,8 @@ class TestPerspective(TestCase):
         for interpolation in [InterpolationMode.NEAREST, InterpolationMode.BILINEAR]:
             cpu_output = self.cpu_op_exec(cpu_input, startpoints, endpoints, interpolation, fill)
             npu_output = self.npu_op_exec(npu_input, startpoints, endpoints, interpolation, fill)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2 / 255)
+            self.assertRtolEqual(npu_output, cpu_output)
 
-    @unittest.expectedFailure
     def test_perspective_multi_uint8(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -79,7 +76,7 @@ class TestPerspective(TestCase):
         for interpolation in [InterpolationMode.NEAREST, InterpolationMode.BILINEAR]:
             cpu_output = self.cpu_op_exec(cpu_input, startpoints, endpoints, interpolation, fill)
             npu_output = self.npu_op_exec(npu_input, startpoints, endpoints, interpolation, fill)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+            self.assertRtolEqual(npu_output, cpu_output, 2)
 
 
 if __name__ == '__main__':

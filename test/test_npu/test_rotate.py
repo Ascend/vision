@@ -37,7 +37,6 @@ class TestRotate(TestCase):
         output = output.cpu()
         return output
 
-    @unittest.expectedFailure
     def test_rotate_single(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -53,9 +52,8 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, False, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+            self.assertRtolEqual(npu_output, cpu_output)
 
-    @unittest.expectedFailure
     def test_rotate_expand_single(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -71,9 +69,8 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, True, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
-    
-    @unittest.expectedFailure
+            self.assertRtolEqual(npu_output, cpu_output)
+
     def test_rotate_multi_float(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -88,9 +85,8 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, False, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2 / 255)
+            self.assertRtolEqual(npu_output, cpu_output)
 
-    @unittest.expectedFailure
     def test_rotate_expand_multi_float(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -105,7 +101,7 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, True, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2 / 255)
+            self.assertRtolEqual(npu_output, cpu_output)
 
     def test_rotate_multi_uint8(self):
         torch.ops.torchvision._dvpp_init()
@@ -121,9 +117,8 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, True, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+            self.assertRtolEqual(npu_output, cpu_output)
 
-    @unittest.expectedFailure
     def test_rotate_expand_multi_uint8(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -138,7 +133,7 @@ class TestRotate(TestCase):
             attr = RotateAttr(angle, interpolation, True, center, fill)
             cpu_output = self.cpu_op_exec(cpu_input, attr)
             npu_output = self.npu_op_exec(npu_input, attr)
-            self.assert_acceptable_deviation(npu_output, cpu_output, 2)
+            self.assertRtolEqual(npu_output, cpu_output)
 
 
 if __name__ == '__main__':

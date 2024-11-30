@@ -204,8 +204,8 @@
    import torchvision_npu # 导入torchvision_npu包
 
    torchvision.set_image_backend('npu') # 设置图像处理后端为npu，即使能DVPP加速
-   npu_input = torch.randint(0, 256, (4, 3, 480, 960), dtype=torch.uint8).npu()
-   output = torchvision.transforms.functional.center_crop(npu_input, (100, 200))
+   ...
+   npu_output = torchvision.datasets.folder.default_loader(...)
    ```
 
 2. 执行单元测试脚本。
@@ -213,7 +213,7 @@
    输出结果OK即为验证成功。
    ```
    cd test/test_npu/
-   python -m unittest discover
+   python test_default_loader.py
    ```
 
 3. DVPP支持列表
@@ -226,24 +226,7 @@
    |----------------------|------------------|--------------------|------------------------------  |
    | default_loader  |    | 输出为NPU tensor，一般与to_tensor搭配使用                        | JPEG图像分辨率: 6x4~32768x32768   |
    | ToTensor             | to_tensor        | 支持四维tensor输入，一般与default_loader搭配使用                 | 分辨率: 6x4~4096x8192     |
-   | Normalize            | normalize        | √                        | 分辨率: 6x4~4096x8192     |
-   | CenterCrop<br>FiveCrop<br>TenCrop | crop      | √                        | 分辨率: 6x4~32768x32768   |
-   | Pad                  | pad              | √                        | 分辨率: 6x4~32768x32768<br>填充宽度支持范围[0,2048] |
-   | RandomHorizontalFlip | hflip            | √                        | 分辨率: 6x4~4096x8192     |
-   | RandomVerticalFlip   | vflip            | √                        | 分辨率: 6x4~4096x8192     |
-   | RandomResizedCrop<br>RandomSizedCrop | resized_crop     | BILINEAR和BICUBIC: 误差+1左右。其他插值模式无法对标 | 分辨率: 6x4~32768x32768<br>输出宽超过4096时输入宽高不能小于128x16 |
    | ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
-   | ColorJitter          | adjust_contrast  | 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
-   | ColorJitter          | adjust_brightness| 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
-   | ColorJitter          | adjust_saturation| 底层实现有差异，factor在[0,1]时误差±1 | 分辨率: 6x4~4096x8192     |
-   | GaussianBlur         | gaussian_blur    | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192<br>kernel_size只支持1、3、5 |
-   | RandomAffine         | affine           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
-   | RandomPerspective    | perspective      | 底层实现有差异 | 分辨率: 6x4~4096x8192 |
-   | RandomRotation       | rotate           | 底层实现有差异 | 分辨率: 6x4~32768x32768 |
-   | Grayscale<br>RandomGrayscale | rgb_to_grayscale | float误差±1/255, uint8误差±1 | 分辨率: 6x4~4096x8192 |
-   | RandomPosterize      | posterize    | √ | 分辨率: 6x4~4096x8192 |
-   | RandomSolarize       | solarize     | float误差在±0.1，uint对标 | 分辨率: 6x4~4096x8192 |
-   | RandomInvert         | invert       | √ | 分辨率: 6x4~4096x8192 |
    | encode_jpeg          |              |   | 分辨率: 32x32~8192x8192<br>输出宽高需要2对齐 |
 
 

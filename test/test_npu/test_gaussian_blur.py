@@ -10,6 +10,7 @@ from torchvision_npu.testing.test_deviation_case import TestCase
 
 
 TEST_DIR = Path(__file__).resolve().parents[1]
+torch.npu.config.allow_internal_format = False
 
 
 class TestGaussianBlur(TestCase):

@@ -35,7 +35,6 @@ class TestAffine(TestCase):
         output = output.cpu()
         return output
 
-    @unittest.expectedFailure
     def test_affine_single(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -55,7 +54,6 @@ class TestAffine(TestCase):
             npu_output = self.npu_op_exec(npu_input, attr)
             self.assert_acceptable_deviation(npu_output, cpu_output, 2)
 
-    @unittest.expectedFailure
     def test_affine_multi_float(self):
         torch.ops.torchvision._dvpp_init()
 
@@ -74,7 +72,6 @@ class TestAffine(TestCase):
             npu_output = self.npu_op_exec(npu_input, attr)
             self.assert_acceptable_deviation(npu_output, cpu_output, 2 / 255)
 
-    @unittest.expectedFailure
     def test_affine_multi_uint8(self):
         torch.ops.torchvision._dvpp_init()
 

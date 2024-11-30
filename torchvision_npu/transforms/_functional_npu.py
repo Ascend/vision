@@ -79,6 +79,7 @@ def _resized_crop(img: Tensor, crop_param: List[int], size: List[int], interpola
         crop_size=size, method=_interpolation_crop_and_resize_int2str[interpolation])
 
 
+@deal_with_tensor_batch
 def _to_tensor(pic) -> Tensor:
     if torch.npu.is_jit_compile_false():
         return torch.ops.torchvision._img_to_tensor_aclnn(pic)

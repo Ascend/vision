@@ -43,6 +43,15 @@ class TestToTensor(TestCase):
         npu_output = self.npu_op_exec(npu_input)
         self.assertEqual(npu_output, cpu_output)
 
+    def test_to_tensor_batch(self):
+        torch.ops.torchvision._dvpp_init()
+        cpu_input = torch.randint(0, 255, (4, 3, 320, 240), dtype=torch.uint8)
+        npu_input = cpu_input.npu()
+
+        cpu_output = cpu_input / 255.0
+        npu_output = self.npu_op_exec(npu_input)
+        self.assertEqual(npu_output, cpu_output)
+
 
 if __name__ == '__main__':
     run_tests()

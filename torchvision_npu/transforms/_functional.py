@@ -44,7 +44,6 @@ def patch_transform_methods():
     setattr(torchvision.transforms.functional, "normalize_ori", torchvision.transforms.functional.normalize)
     torchvision.transforms.functional.normalize = normalize
     torchvision.transforms.functional.hflip = hflip
-    torchvision.transforms.functional.resized_crop = resized_crop
     setattr(torchvision.transforms.functional, "to_tensor_ori", torchvision.transforms.functional.to_tensor)
     torchvision.transforms.functional.to_tensor = to_tensor
     torchvision.transforms.functional.pil_to_tensor = pil_to_tensor
@@ -52,11 +51,10 @@ def patch_transform_methods():
     setattr(torchvision.transforms.functional, "resize_ori", torchvision.transforms.functional.resize)
     torchvision.transforms.functional.resize = resize
     torchvision.transforms.functional.crop = crop
-    torchvision.transforms.functional.center_crop = center_crop
-    torchvision.transforms.functional.five_crop = five_crop
-    torchvision.transforms.functional.ten_crop = ten_crop
     torchvision.transforms.functional.pad = pad
+    setattr(torchvision.transforms.functional, "rotate_ori", torchvision.transforms.functional.rotate)
     torchvision.transforms.functional.rotate = rotate
+    setattr(torchvision.transforms.functional, "affine_ori", torchvision.transforms.functional.affine)
     torchvision.transforms.functional.affine = affine
     torchvision.transforms.functional.invert = invert
     torchvision.transforms.functional.perspective = perspective
@@ -69,6 +67,7 @@ def patch_transform_methods():
     torchvision.transforms.functional.adjust_sharpness = adjust_sharpness
     torchvision.transforms.functional.autocontrast = autocontrast
     torchvision.transforms.functional.equalize = equalize
+    setattr(torchvision.transforms.functional, "gaussian_blur_ori", torchvision.transforms.functional.gaussian_blur)
     torchvision.transforms.functional.gaussian_blur = gaussian_blur
     torchvision.transforms.functional.rgb_to_grayscale = rgb_to_grayscale
     torchvision.transforms.functional.get_image_size = _get_image_size
@@ -80,19 +79,6 @@ cv2_interpolation_mapping = {
     InterpolationMode.BILINEAR: cv2.INTER_LINEAR,
     InterpolationMode.BICUBIC: cv2.INTER_CUBIC,
     InterpolationMode.LANCZOS: cv2.INTER_LANCZOS4,
-}
-
-_npu_interpolation_mode_mapping = {
-    InterpolationMode.BILINEAR: 0,
-    InterpolationMode.NEAREST: 1,
-    InterpolationMode.BICUBIC: 2,
-}
-
-_npu_padding_mode_mapping = {
-    "constant": 0,
-    "edge": 1,
-    "reflect": 2,
-    "symmetric": 3,
 }
 
 
@@ -154,9 +140,6 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
         raise ValueError('Expected tensor to be a tensor image of size (..., C, H, W). Got tensor.size() = '
                          '{}.'.format(tensor.size()))
 
-    if tensor.device.type == 'npu':
-        return F_npu._normalize(tensor, mean, std, inplace)
-
     if torchvision.get_image_backend() == 'moal':
         is_float_tensor = tensor.dtype in [torch.bfloat16, torch.float16, torch.float32, torch.float64]
         if not (is_float_tensor and tensor.device.type == 'cpu'):
@@ -190,74 +173,7 @@ def hflip(img: Tensor) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.hflip(img)
 
-    if img.device.type == 'npu':
-        return F_npu._hflip(img)
-
     return F_t.hflip(img)
-
-
-def resized_crop(
-    img: Tensor,
-    top: int,
-    left: int,
-    height: int,
-    width: int,
-    size: List[int],
-    interpolation: InterpolationMode = InterpolationMode.BILINEAR,
-    antialias: Optional[Union[str, bool]] = "warn",
-) -> Tensor:
-    """Crop the given image and resize it to desired size.
-    If the image is torch Tensor, it is expected
-    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
-
-    Notably used in :class:`~torchvision.transforms.RandomResizedCrop`.
-
-    Args:
-        img (PIL Image or Tensor): Image to be cropped. (0,0) denotes the top left corner of the image.
-        top (int): Vertical component of the top left corner of the crop box.
-        left (int): Horizontal component of the top left corner of the crop box.
-        height (int): Height of the crop box.
-        width (int): Width of the crop box.
-        size (sequence or int): Desired output size. Same semantics as ``resize``.
-        interpolation (InterpolationMode): Desired interpolation enum defined by
-            :class:`torchvision.transforms.InterpolationMode`.
-            Default is ``InterpolationMode.BILINEAR``. If input is Tensor, only ``InterpolationMode.NEAREST``,
-            ``InterpolationMode.NEAREST_EXACT``, ``InterpolationMode.BILINEAR`` and ``InterpolationMode.BICUBIC`` are
-            supported.
-            The corresponding Pillow integer constants, e.g. ``PIL.Image.BILINEAR`` are accepted as well.
-        antialias (bool, optional): Whether to apply antialiasing.
-            It only affects **tensors** with bilinear or bicubic modes and it is
-            ignored otherwise: on PIL images, antialiasing is always applied on
-            bilinear or bicubic modes; on other modes (for PIL images and
-            tensors), antialiasing makes no sense and this parameter is ignored.
-            Possible values are:
-
-            - ``True``: will apply antialiasing for bilinear or bicubic modes.
-              Other mode aren't affected. This is probably what you want to use.
-            - ``False``: will not apply antialiasing for tensors on any mode. PIL
-              images are still antialiased on bilinear or bicubic modes, because
-              PIL doesn't support no antialias.
-            - ``None``: equivalent to ``False`` for tensors and ``True`` for
-              PIL images. This value exists for legacy reasons and you probably
-              don't want to use it unless you really know what you are doing.
-
-            The current default is ``None`` **but will change to** ``True`` **in
-            v0.17** for the PIL and Tensor backends to be consistent.
-    Returns:
-        PIL Image or Tensor: Cropped image.
-    """
-    if not torch.jit.is_scripting() and not torch.jit.is_tracing():
-        _log_api_usage_once(resized_crop)
-
-    if isinstance(img, torch.Tensor) and img.device.type == 'npu':
-        if interpolation not in _npu_interpolation_mode_mapping:
-            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
-        crop_param = [top, left, height, width]
-        return F_npu._resized_crop(img, crop_param, size, _npu_interpolation_mode_mapping[interpolation])
-
-    img = crop(img, top, left, height, width)
-    img = resize(img, size, interpolation, antialias=antialias)
-    return img
 
 
 def to_tensor(pic) -> Tensor:
@@ -347,9 +263,6 @@ def vflip(img: Tensor) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.vflip(img)
-
-    if img.device.type == 'npu':
-        return F_npu._vflip(img)
 
     return F_t.vflip(img)
 
@@ -518,140 +431,7 @@ def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.crop(img, top, left, height, width)
 
-    if img.device.type == 'npu':
-        return F_npu._crop(img, top, left, height, width)
-
     return F_t.crop(img, top, left, height, width)
-
-
-def center_crop(img: Tensor, output_size: List[int]) -> Tensor:
-    """Crops the given image at the center.
-    If the image is torch Tensor, it is expected
-    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
-    If image size is smaller than output size along any edge, image is padded with 0 and then center cropped.
-
-    Args:
-        img (PIL Image or Tensor or numpy.ndarray): Image to be cropped.
-        output_size (sequence or int): (height, width) of the crop box. If int or sequence with single int,
-            it is used for both directions.
-
-    Returns:
-        PIL Image or Tensor or numpy.ndarray: Cropped image.
-    """
-    if not torch.jit.is_scripting() and not torch.jit.is_tracing():
-        _log_api_usage_once(center_crop)
-    if isinstance(output_size, numbers.Number):
-        output_size = (int(output_size), int(output_size))
-    elif isinstance(output_size, (tuple, list)) and len(output_size) == 1:
-        output_size = (output_size[0], output_size[0])
-
-    image_width, image_height = _get_image_size(img)
-    crop_height, crop_width = output_size
-
-    if crop_width > image_width or crop_height > image_height:
-        padding_ltrb = [
-            (crop_width - image_width) // 2 if crop_width > image_width else 0,
-            (crop_height - image_height) // 2 if crop_height > image_height else 0,
-            (crop_width - image_width + 1) // 2 if crop_width > image_width else 0,
-            (crop_height - image_height + 1) // 2 if crop_height > image_height else 0,
-        ]
-        img = pad(img, padding_ltrb, fill=0)  # PIL uses fill value 0
-        image_width, image_height = _get_image_size(img)
-        if crop_width == image_width and crop_height == image_height:
-            return img
-
-    crop_top = int(round((image_height - crop_height) / 2.))
-    crop_left = int(round((image_width - crop_width) / 2.))
-    return crop(img, crop_top, crop_left, crop_height, crop_width)
-
-
-def five_crop(img: Tensor, size: List[int]) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-    """Crop the given image into four corners and the central crop.
-    If the image is torch Tensor, it is expected
-    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
-
-    .. Note::
-        This transform returns a tuple of images and there may be a
-        mismatch in the number of inputs and targets your ``Dataset`` returns.
-
-    Args:
-        img (PIL Image or Tensor): Image to be cropped.
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made. If provided a sequence of length 1, it will be interpreted as (size[0], size[0]).
-
-    Returns:
-       tuple: tuple (tl, tr, bl, br, center)
-                Corresponding top left, top right, bottom left, bottom right and center crop.
-    """
-    if not torch.jit.is_scripting() and not torch.jit.is_tracing():
-        _log_api_usage_once(five_crop)
-    if isinstance(size, numbers.Number):
-        size = (int(size), int(size))
-    elif isinstance(size, (tuple, list)) and len(size) == 1:
-        size = (size[0], size[0])
-
-    if len(size) != 2:
-        raise ValueError("Please provide only two dimensions (h, w) for size.")
-
-    image_width, image_height = _get_image_size(img)
-    crop_height, crop_width = size
-    if crop_width > image_width or crop_height > image_height:
-        msg = "Requested crop size {} is bigger than input size {}"
-        raise ValueError(msg.format(size, (image_height, image_width)))
-
-    tl = crop(img, 0, 0, crop_height, crop_width)
-    tr = crop(img, 0, image_width - crop_width, crop_height, crop_width)
-    bl = crop(img, image_height - crop_height, 0, crop_height, crop_width)
-    br = crop(img, image_height - crop_height, image_width - crop_width, crop_height, crop_width)
-
-    center = center_crop(img, [crop_height, crop_width])
-
-    return tl, tr, bl, br, center
-
-
-def ten_crop(img: Tensor, size: List[int], vertical_flip: bool = False) -> List[Tensor]:
-    """Generate ten cropped images from the given image.
-    Crop the given image into four corners and the central crop plus the
-    flipped version of these (horizontal flipping is used by default).
-    If the image is torch Tensor, it is expected
-    to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions
-
-    .. Note::
-        This transform returns a tuple of images and there may be a
-        mismatch in the number of inputs and targets your ``Dataset`` returns.
-
-    Args:
-        img (PIL Image or Tensor): Image to be cropped.
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made. If provided a sequence of length 1, it will be interpreted as (size[0], size[0]).
-        vertical_flip (bool): Use vertical flipping instead of horizontal
-
-    Returns:
-        tuple: tuple (tl, tr, bl, br, center, tl_flip, tr_flip, bl_flip, br_flip, center_flip)
-            Corresponding top left, top right, bottom left, bottom right and
-            center crop and same for the flipped image.
-    """
-    if not torch.jit.is_scripting() and not torch.jit.is_tracing():
-        _log_api_usage_once(ten_crop)
-    if isinstance(size, numbers.Number):
-        size = (int(size), int(size))
-    elif isinstance(size, (tuple, list)) and len(size) == 1:
-        size = (size[0], size[0])
-
-    if len(size) != 2:
-        raise ValueError("Please provide only two dimensions (h, w) for size.")
-
-    first_five = five_crop(img, size)
-
-    if vertical_flip:
-        img = vflip(img)
-    else:
-        img = hflip(img)
-
-    second_five = five_crop(img, size)
-    return first_five + second_five
 
 
 def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "constant") -> Tensor:
@@ -705,11 +485,6 @@ def pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: str = "con
     if not isinstance(img, torch.Tensor):
         return F_pil.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
-    if img.device.type == 'npu':
-        if padding_mode not in _npu_padding_mode_mapping:
-            raise TypeError(f"NPU does not support {padding_mode} padding_mode")
-        return F_npu._pad(img, padding=padding, fill=fill, padding_mode=_npu_padding_mode_mapping[padding_mode])
-
     return F_t.pad(img, padding=padding, fill=fill, padding_mode=padding_mode)
 
 
@@ -747,7 +522,7 @@ def _get_affine_matrix(
 def rotate(
         img: Tensor, angle: float, interpolation: InterpolationMode = InterpolationMode.NEAREST,
         expand: bool = False, center: Optional[List[int]] = None,
-        fill: Optional[List[float]] = None, resample: Optional[int] = None
+        fill: Optional[List[float]] = None
 ) -> Tensor:
     """Rotate the image by angle.
     If the image is torch Tensor, it is expected
@@ -776,13 +551,11 @@ def rotate(
         PIL Image or Tensor or numpy.ndarray: Rotated image.
 
     """
+    if torchvision.get_image_backend() != 'cv2':
+        return F.rotate_ori(img, angle, interpolation, expand, center, fill)
+
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(rotate)
-    if resample is not None:
-        warnings.warn(
-            "Argument resample is deprecated and will be removed since v0.10.0. Please, use interpolation instead"
-        )
-        interpolation = F._interpolation_modes_from_int(resample)
 
     # Backward compatibility with integer value
     if isinstance(interpolation, int):
@@ -801,37 +574,15 @@ def rotate(
     if not isinstance(interpolation, InterpolationMode):
         raise TypeError("Argument interpolation should be a InterpolationMode")
 
-    if torchvision.get_image_backend() == 'cv2':
-        if not isinstance(img, np.ndarray):
-            raise TypeError(
-                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
-        if interpolation not in cv2_interpolation_mapping:
-            raise TypeError("Opencv does not support box and hamming interpolation")
-        else:
-            cv2_interpolation = cv2_interpolation_mapping[interpolation]
-            return F_cv2.rotate(img, angle=angle, interpolation=cv2_interpolation, expand=expand, center=center,
-                                fill=fill)
-
-    if not isinstance(img, torch.Tensor):
-        pil_interpolation = F.pil_modes_mapping[interpolation]
-        return F_pil.rotate(img, angle=angle, interpolation=pil_interpolation, expand=expand, center=center, fill=fill)
-
-    if img.device.type == 'npu':
-        if interpolation not in _npu_interpolation_mode_mapping:
-            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
-        rotate_force_param = [angle, _npu_interpolation_mode_mapping[interpolation], expand]
-        return F_npu._rotate(img, rotate_force_param=rotate_force_param, center=center, fill=fill)
-
-    center_f = [0.0, 0.0]
-    if center is not None:
-        img_size = _get_image_size(img)
-        # Center values should be in pixel coordinates but translated such that (0, 0) corresponds to image center.
-        center_f = [1.0 * (c - s * 0.5) for c, s in zip(center, img_size)]
-
-    # due to current incoherence of rotation angle direction between affine and rotate implementations
-    # we need to set -angle.
-    matrix = F._get_inverse_affine_matrix(center_f, -angle, [0.0, 0.0], 1.0, [0.0, 0.0])
-    return F_t.rotate(img, matrix=matrix, interpolation=interpolation.value, expand=expand, fill=fill)
+    if not isinstance(img, np.ndarray):
+        raise TypeError(
+            "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+    if interpolation not in cv2_interpolation_mapping:
+        raise TypeError("Opencv does not support box and hamming interpolation")
+    else:
+        cv2_interpolation = cv2_interpolation_mapping[interpolation]
+    return F_cv2.rotate(img, angle=angle, interpolation=cv2_interpolation, expand=expand, center=center,
+                        fill=fill)
 
 
 def affine(
@@ -872,6 +623,9 @@ def affine(
     Returns:
         PIL Image or Tensor or numpy.ndarray: Transformed image.
     """
+    if torchvision.get_image_backend() != 'cv2':
+        return F.affine_ori(img, angle, translate, scale, shear, interpolation, fill, center)
+
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(affine)
 
@@ -920,47 +674,16 @@ def affine(
 
     width, height = _get_image_size(img)
 
-    # cv2 affine matrix get different
-    if torchvision.get_image_backend() == 'cv2':
-        if not isinstance(img, np.ndarray):
-            raise TypeError(
-                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
-        if interpolation not in cv2_interpolation_mapping:
-            raise TypeError("Opencv does not support box and hamming interpolation")
-        cv2_interpolation = cv2_interpolation_mapping[interpolation]
-        if center is None:
-            center = [width * 0.5, height * 0.5]
-        M = F._get_inverse_affine_matrix(center, -angle, translate, scale, shear)
-        return F_cv2.affine(img, matrix=np.array(M).reshape(2, 3), interpolation=cv2_interpolation, fill=fill)
-
-    if not isinstance(img, torch.Tensor):
-        # center = (width * 0.5 + 0.5, height * 0.5 + 0.5)
-        # it is visually better to estimate the center without 0.5 offset
-        # otherwise image rotated by 90 degrees is shifted vs output image of torch.rot90 or F_t.affine
-        if center is None:
-            center = [width * 0.5, height * 0.5]
-        matrix = F._get_inverse_affine_matrix(center, angle, translate, scale, shear)
-        pil_interpolation = F.pil_modes_mapping[interpolation]
-        return F_pil.affine(img, matrix=matrix, interpolation=pil_interpolation, fill=fill)
-
-    if img.device.type == 'npu':
-        if interpolation not in _npu_interpolation_mode_mapping:
-            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
-        if center is None:
-            center = [width * 0.5, height * 0.5]
-        # DVPP affine matrix should be non-inverse
-        matrix = _get_affine_matrix(center, angle, translate, scale, shear)
-        return F_npu._affine(img, matrix=matrix, interpolation=_npu_interpolation_mode_mapping[interpolation], fill=fill)
-
-    center_f = [0.0, 0.0]
-    if center is not None:
-        width, height = _get_image_size(img)
-        # Center values should be in pixel coordinates but translated such that (0, 0) corresponds to image center.
-        center_f = [1.0 * (c - s * 0.5) for c, s in zip(center, [width, height])]
-
-    translate_f = [1.0 * t for t in translate]
-    matrix = F._get_inverse_affine_matrix(center_f, angle, translate_f, scale, shear)
-    return F_t.affine(img, matrix=matrix, interpolation=interpolation.value, fill=fill)
+    if not isinstance(img, np.ndarray):
+        raise TypeError(
+            "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+    if interpolation not in cv2_interpolation_mapping:
+        raise TypeError("Opencv does not support box and hamming interpolation")
+    cv2_interpolation = cv2_interpolation_mapping[interpolation]
+    if center is None:
+        center = [width * 0.5, height * 0.5]
+    M = F._get_inverse_affine_matrix(center, -angle, translate, scale, shear)
+    return F_cv2.affine(img, matrix=np.array(M).reshape(2, 3), interpolation=cv2_interpolation, fill=fill)
 
 
 def invert(img: Tensor) -> Tensor:
@@ -985,9 +708,6 @@ def invert(img: Tensor) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.invert(img)
-
-    if img.device.type == 'npu':
-        return F_npu._invert(img)
 
     return F_t.invert(img)
 
@@ -1050,11 +770,6 @@ def perspective(
         pil_interpolation = F.pil_modes_mapping[interpolation]
         return F_pil.perspective(img, coeffs, interpolation=pil_interpolation, fill=fill)
 
-    if img.device.type == 'npu':
-        if interpolation not in _npu_interpolation_mode_mapping:
-            raise TypeError(f"NPU does not support {interpolation.value} interpolation")
-        return F_npu._perspective(img, coeffs, interpolation=_npu_interpolation_mode_mapping[interpolation], fill=fill)
-
     return F_t.perspective(img, coeffs, interpolation=interpolation.value, fill=fill)
 
 
@@ -1082,9 +797,6 @@ def adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_brightness(img, brightness_factor)
-
-    if img.device.type == 'npu':
-        return F_npu._adjust_brightness(img, brightness_factor)
 
     return F_t.adjust_brightness(img, brightness_factor)
 
@@ -1114,9 +826,6 @@ def adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_contrast(img, contrast_factor)
 
-    if img.device.type == 'npu':
-        return F_npu._adjust_contrast(img, contrast_factor)
-
     return F_t.adjust_contrast(img, contrast_factor)
 
 
@@ -1144,9 +853,6 @@ def adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_saturation(img, saturation_factor)
-
-    if img.device.type == 'npu':
-        return F_npu._adjust_saturation(img, saturation_factor)
 
     return F_t.adjust_saturation(img, saturation_factor)
 
@@ -1187,7 +893,6 @@ def adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.adjust_hue(img, hue_factor)
-    
     if img.device.type == 'npu':
         return F_npu._adjust_hue(img, hue_factor)
 
@@ -1221,9 +926,6 @@ def posterize(img: Tensor, bits: int) -> Tensor:
     if not isinstance(img, torch.Tensor):
         return F_pil.posterize(img, bits)
 
-    if img.device.type == 'npu':
-        return F_npu._posterize(img, bits)
-
     return F_t.posterize(img, bits)
 
 
@@ -1249,9 +951,6 @@ def solarize(img: Tensor, threshold: float) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.solarize(img, threshold)
-
-    if img.device.type == 'npu':
-        return F_npu._solarize(img, threshold)
 
     return F_t.solarize(img, threshold)
 
@@ -1360,6 +1059,9 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
     Returns:
         PIL Image or Tensor or numpy.ndarray: Gaussian Blurred version of the image.
     """
+    if torchvision.get_image_backend != 'cv2':
+        return F.gaussian_blur_ori(img, kernel_size, sigma)
+
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(gaussian_blur)
     if not isinstance(kernel_size, (int, list, tuple)):
@@ -1388,27 +1090,10 @@ def gaussian_blur(img: Tensor, kernel_size: List[int], sigma: Optional[List[floa
             raise ValueError('sigma should have positive values. Got {}'.format(sigma))
 
     t_img = img
-    # pil no gaussian_blur
-    if torchvision.get_image_backend() == 'cv2':
-        if not isinstance(img, np.ndarray):
-            raise TypeError(
-                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
-        return F_cv2.gaussian_blur(t_img, kernel_size, sigma)
-
-    if not isinstance(img, torch.Tensor):
-        if not F_pil._is_pil_image(img):
-            raise TypeError('img should be PIL Image or Tensor. Got {}'.format(type(img)))
-
-        t_img = pil_to_tensor(img)
-
-    if t_img.device.type == 'npu':
-        return F_npu._gaussian_blur(t_img, kernel_size, sigma)
-
-    output = F_t.gaussian_blur(t_img, kernel_size, sigma)
-
-    if not isinstance(img, torch.Tensor):
-        output = F.to_pil_image(output, mode=img.mode)
-    return output
+    if not isinstance(img, np.ndarray):
+        raise TypeError(
+            "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+    return F_cv2.gaussian_blur(t_img, kernel_size, sigma)
 
 
 def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
@@ -1440,9 +1125,6 @@ def rgb_to_grayscale(img: Tensor, num_output_channels: int = 1) -> Tensor:
 
     if not isinstance(img, torch.Tensor):
         return F_pil.to_grayscale(img, num_output_channels)
-
-    if img.device.type == 'npu':
-        return F_npu._rgb_to_grayscale(img, num_output_channels)
 
     return F_t.rgb_to_grayscale(img, num_output_channels)
 
