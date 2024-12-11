@@ -8,8 +8,8 @@ from torch_npu.testing.testcase import TestCase, run_tests
 import torchvision_npu
 
 
-torch_npu.npu.current_stream().set_data_preprocess_stream(True)
 TEST_DIR = Path(__file__).resolve().parents[1]
+torch.ops.torchvision._dvpp_init()
 
 
 class TestDecodeJpeg(TestCase):
@@ -23,7 +23,6 @@ class TestDecodeJpeg(TestCase):
         self.assertEqual(npu_output, cpu_output)
 
         torch.npu.set_compile_mode(jit_compile=False)
-        torch.ops.torchvision._dvpp_init()
         npu_output = torchvision_npu.datasets._folder._npu_loader(path).cpu()
         self.assertEqual(npu_output, cpu_output)
 

@@ -40,10 +40,7 @@ def _assert_mode(mode: int, supported_modes: List[int]) -> None:
 @deal_with_tensor_batch
 def _normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool = False) -> Tensor:
     result = tensor
-    if torch.npu.is_jit_compile_false():
-        result = torch.ops.torchvision._normalize_aclnn(tensor, mean=mean, std=std)
-    else:
-        result = torch.ops.torchvision._normalize_aclop(tensor, mean=mean, variance=std, dtype=torch.float32)
+    result = torch.ops.torchvision._normalize_aclnn(tensor, mean=mean, std=std)
     if not inplace:
         return result
     tensor = result.clone()
@@ -52,38 +49,24 @@ def _normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: boo
 
 @deal_with_tensor_batch
 def _vflip(img: Tensor) -> Tensor:
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._vertical_flip_aclnn(img)
-    return torch.ops.torchvision._reverse_aclop(img, axis=[2])
+    return torch.ops.torchvision._vertical_flip_aclnn(img)
 
 
 @deal_with_tensor_batch
 def _hflip(img: Tensor) -> Tensor:
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._horizontal_flip_aclnn(img)
-    return torch.ops.torchvision._reverse_aclop(img, axis=[3])
+    return torch.ops.torchvision._horizontal_flip_aclnn(img)
 
 
 @deal_with_tensor_batch
 def _resized_crop(img: Tensor, crop_param: List[int], size: List[int], interpolation: int = 0) -> Tensor:
     i, j, h, w = [p for p in crop_param]
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._crop_and_resize_aclnn(img, top=i, left=j, height=h, width=w,
+    return torch.ops.torchvision._crop_and_resize_aclnn(img, top=i, left=j, height=h, width=w,
                                                             size=size, interpolation_mode=interpolation)
-
-    width, height = img.shape[-1], img.shape[-2]
-    if width <= 1 or height <= 1:
-        return img
-    boxes = np.minimum([i / (height - 1), j / (width - 1), (i + h) / (height - 1), (j + w) / (width - 1)], 1).tolist()
-    return torch.ops.torchvision._crop_and_resize_aclop(img, boxes=boxes, box_index=[0],
-        crop_size=size, method=_interpolation_crop_and_resize_int2str[interpolation])
 
 
 @deal_with_tensor_batch
 def _to_tensor(pic) -> Tensor:
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._img_to_tensor_aclnn(pic)
-    return torch.ops.torchvision._img_to_tensor_aclop(pic)
+    return torch.ops.torchvision._img_to_tensor_aclnn(pic)
 
 
 @deal_with_tensor_batch
@@ -118,21 +101,12 @@ def _resize(img: Tensor, size: List[int], interpolation: int = 0) -> Tensor:
 
     sizes = [int(size_h), int(size_w)]
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._resize_aclnn(img, size=sizes, interpolation_mode=interpolation)
-
-    return torch.ops.torchvision._resize_aclop(img, size=sizes, mode=_interpolation_resize_int2str[interpolation])
+    return torch.ops.torchvision._resize_aclnn(img, size=sizes, interpolation_mode=interpolation)
 
 
 @deal_with_tensor_batch
 def _crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._crop_aclnn(img, top=top, left=left, height=height, width=width)
-
-    size = [img.shape[0], img.shape[1], height, width]
-    axis = 2 # crop start from the 3th(Height) axis
-    offsets = [top, left] # crop start point(the upper left corner) coordinate
-    return torch.ops.torchvision._crop_aclop(img, size=size, axis=axis, offsets=offsets)
+    return torch.ops.torchvision._crop_aclnn(img, top=top, left=left, height=height, width=width)
 
 
 @deal_with_tensor_batch
@@ -169,12 +143,8 @@ def _pad(img: Tensor, padding: List[int], fill: int = 0, padding_mode: int = 0) 
     if min(p) < 0:
         raise ValueError("pad value ({}) is not non-negative.".format(min(p)))
 
-    if torch.npu.is_jit_compile_false():
-        fill = [fill, fill, fill]
-        return torch.ops.torchvision._pad_aclnn(img, padding=p, padding_mode=padding_mode, fill=fill)
-
-    p = [pad_left, pad_right, pad_top, pad_bottom]
-    return torch.ops.torchvision._pad_aclop(img, pad=p, constant_values=fill, mode=_padding_mode_int2str[padding_mode])
+    fill = [fill, fill, fill]
+    return torch.ops.torchvision._pad_aclnn(img, padding=p, padding_mode=padding_mode, fill=fill)
 
 
 @deal_with_tensor_batch
@@ -182,9 +152,7 @@ def _adjust_brightness(img: Tensor, brightness_factor: float) -> Tensor:
     if brightness_factor < 0:
         raise ValueError('brightness_factor ({}) is not non-negative.'.format(brightness_factor))
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._adjust_brightness_aclnn(img, factor=brightness_factor)
-    return torch.ops.torchvision._adjust_brightness_aclop(img, factor=brightness_factor)
+    return torch.ops.torchvision._adjust_brightness_aclnn(img, factor=brightness_factor)
 
 
 @deal_with_tensor_batch
@@ -192,9 +160,7 @@ def _adjust_contrast(img: Tensor, contrast_factor: float) -> Tensor:
     if contrast_factor < 0:
         raise ValueError('contrast_factor ({}) is not non-negative.'.format(contrast_factor))
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._adjust_contrast_aclnn(img, factor=contrast_factor)
-    return torch.ops.torchvision._adjust_contrast_aclop(img, factor=contrast_factor)
+    return torch.ops.torchvision._adjust_contrast_aclnn(img, factor=contrast_factor)
 
 
 @deal_with_tensor_batch
@@ -206,9 +172,7 @@ def _adjust_hue(img: Tensor, hue_factor: float) -> Tensor:
     if image_num_channels == 1: # Match PIL behaviour
         return img
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._adjust_hue_aclnn(img, factor=hue_factor)
-    return torch.ops.torchvision._adjust_hue_aclop(img, factor=hue_factor)
+    return torch.ops.torchvision._adjust_hue_aclnn(img, factor=hue_factor)
 
 
 @deal_with_tensor_batch
@@ -216,9 +180,7 @@ def _adjust_saturation(img: Tensor, saturation_factor: float) -> Tensor:
     if saturation_factor < 0:
         raise ValueError('saturation_factor ({}) is not non-negative.'.format(saturation_factor))
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._adjust_saturation_aclnn(img, factor=saturation_factor)
-    return torch.ops.torchvision._adjust_saturation_aclop(img, factor=saturation_factor)
+    return torch.ops.torchvision._adjust_saturation_aclnn(img, factor=saturation_factor)
 
 
 @deal_with_tensor_batch
@@ -228,11 +190,8 @@ def _gaussian_blur(img: Tensor, kernel_size: List[int], sigma: List[float]) -> T
 
     padding_mode = 2 # reflect mode is closer to the native implementation
 
-    if torch.npu.is_jit_compile_false():
-        return torch.ops.torchvision._gaussian_blur_aclnn(img, kernel_size=kernel_size, sigma=sigma,
+    return torch.ops.torchvision._gaussian_blur_aclnn(img, kernel_size=kernel_size, sigma=sigma,
                                                           padding_mode=padding_mode)
-    return torch.ops.torchvision._gaussian_blur_aclop(img, kernel_size=kernel_size, sigma=sigma,
-                                                      padding_mode=_padding_mode_int2str[padding_mode])
 
 
 @deal_with_tensor_batch

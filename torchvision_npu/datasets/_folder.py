@@ -147,24 +147,12 @@ def _npu_loader(path: str) -> Any:
             f.seek(0)
             bytes_string = f.read()
             arr = np.frombuffer(bytes_string, dtype=np.uint8)
-            if not torch.npu.is_jit_compile_false():
-                addr = 16
-                length = len(bytes_string)
-                addr_arr = list(map(int, pack('<Q', addr)))
-                len_arr = list(map(int, pack('<Q', length)))
-                arr = np.hstack((addr_arr, len_arr, arr, [0]))
-                arr = np.array(arr, dtype=np.uint8)
             uint8_tensor = torch.tensor(arr).npu(non_blocking=True)
             channels = 3
 
-            if torch.npu.is_jit_compile_false():
-                return torch.ops.torchvision._decode_jpeg_aclnn(
-                    uint8_tensor, image_shape=image_shape, channels=channels)
-
-            img = torch.ops.torchvision._decode_jpeg_aclop(
+            return torch.ops.torchvision._decode_jpeg_aclnn(
                 uint8_tensor, image_shape=image_shape, channels=channels)
-            _assert_image_3d(img)
-            return img.unsqueeze(0)
+
         # For other imgae types, use PIL to decode, then convert to npu tensor with NCHW format.
         else:
             img = torch.from_numpy(np.array(fold.pil_loader(path)))
