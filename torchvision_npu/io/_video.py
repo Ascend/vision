@@ -294,18 +294,29 @@ def _read_video(
 
             if container.streams.video:
                 if container.streams.video[0].name not in ("hevc", "h264"):
-                    raise RuntimeError(f"This video is coding by {container.streams.video[0].name}, not supported. "
-                                       f"Only support: h264, hevc.")
-
-                vframes = _read_from_stream_dvpp(
-                    filepath,
-                    container,
-                    start_pts,
-                    end_pts,
-                    pts_unit,
-                    container.streams.video[0],
-                    {"video": 0},
-                )
+                    warnings.warn(f"This video in {filepath} is coding by {container.streams.video[0].name}, "
+                                   "not supported on DVPP backend and will fall back to run on the pyav."
+                                   "This may have performance implications.")
+                    torchvision.set_video_backend('pyav')
+                    vframes, aframes, info = IO.video.read_video(
+                        filepath,
+                        start_pts,
+                        end_pts,
+                        pts_unit,
+                        output_format,
+                    )
+                    torchvision.set_video_backend('npu')
+                    return vframes.npu(), aframes.npu(), info
+                else:
+                    vframes = _read_from_stream_dvpp(
+                        filepath,
+                        container,
+                        start_pts,
+                        end_pts,
+                        pts_unit,
+                        container.streams.video[0],
+                        {"video": 0},
+                    )
                 video_fps = container.streams.video[0].average_rate
                 # guard against potentially corrupted files
                 if video_fps is not None:
