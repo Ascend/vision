@@ -52,7 +52,7 @@
     # 下载Torchvision Adapter代码，进入插件根目录
     git clone https://gitee.com/ascend/vision.git vision_npu
     cd vision_npu
-    git checkout v0.16.0-6.0.rc3
+    git checkout v0.16.0-6.0.0
     # 安装依赖库
     pip3 install -r requirement.txt
     # 初始化CANN环境变量
@@ -361,6 +361,7 @@
 
 |Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|
 | -----------------------|----------------------- | ------------- | ------------------------ | ------------- | -----| ---------|
+|  master |     v0.16.0-6.0.0        |     2.1.0     |   2.1.0.post10 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.0|
 |  master |     v0.16.0-6.0.rc3        |     2.1.0     |   2.1.0.post8 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.RC3|
 |  master |     v0.16.0-6.0.rc2        |     2.1.0     |   2.1.0.post6 | 0.16.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
 | v0.12.0-dev |     v0.12.0-6.0.rc2        |     1.11.0     |   1.11.0.post14 | 0.12.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
