@@ -31,7 +31,7 @@ at::Tensor nms_kernel_impl(
     double iou_threshold)
 {
     at::Tensor iou_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(iou_threshold);
-    at::Tensor scores_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(0);
+    at::Tensor scores_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(std::numeric_limits<float>::lowest());
     at::Tensor max_outputsize_y = at::empty({}, boxes.options().dtype(at::kInt)).fill_(boxes.size(0));
     c10::SmallVector<int64_t, SIZE> outputsize = {boxes.size(0)};
     at::Tensor output = at::empty(outputsize, boxes.options().dtype(at::kInt)).fill_(-1);
