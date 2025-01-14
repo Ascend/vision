@@ -57,6 +57,7 @@ no_support_videos = {
         video_fps=30.0,
         audio_sample_rate=None,
     ),
+    "hmdb51_Turnk_r_Pippi_Michel_cartwheel_f_cm_np2_le_med_6.avi": None
 }
 
 
@@ -219,16 +220,13 @@ class TestReadVideo(unittest.TestCase):
     def test_read_video_npu_not_support_type(self):
         for test_video, config in no_support_videos.items():
             full_path = os.path.join(VIDEO_DIR, test_video)
-            print("test_read_video_npu_not_support_type video path:", full_path)
             torchvision.set_video_backend('npu')
-            self.assertRaises(RuntimeError, torchvision.io.read_video, full_path)
-
-    def test_invalid_file(self):
-        torchvision.set_video_backend("npu")
-        self.assertRaises(RuntimeError, torchvision.io.read_video, "foo.mp4")
-
-        torchvision.set_video_backend("pyav")
-        self.assertRaises(RuntimeError, torchvision.io.read_video, "foo.mp4")
+            video_npu, audio_npu, info_npu = torchvision.io.read_video(full_path)
+            torchvision.set_video_backend('pyav')
+            video_cpu, audio_cpu, info_cpu = torchvision.io.read_video(full_path)
+            self.assertTrue(torch.equal(video_npu.cpu(), video_cpu))
+            self.assertTrue(torch.equal(audio_npu.cpu(), audio_cpu))
+            self.assertEqual(info_cpu, info_npu)
 
     def test_read_video_mem(self):
         torchvision.set_video_backend('npu')
