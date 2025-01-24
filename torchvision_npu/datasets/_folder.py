@@ -79,13 +79,15 @@ class DatasetFolder(fold.DatasetFolder):
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
             is_valid_file: Optional[Callable[[str], bool]] = None,
+            allow_empty: bool = False,
     ) -> None:
         super(DatasetFolder, self).__init__(root,
                                             loader=loader,
                                             extensions=extensions,
                                             transform=transform,
                                             target_transform=target_transform,
-                                            is_valid_file=is_valid_file)
+                                            is_valid_file=is_valid_file,
+                                            allow_empty=allow_empty,)
 
         self.accelerate_enable = False
         self.device = "cpu"
@@ -182,9 +184,11 @@ class ImageFolder(fold.ImageFolder, DatasetFolder):
             target_transform: Optional[Callable] = None,
             loader: Callable[[str], Any] = default_loader,
             is_valid_file: Optional[Callable[[str], bool]] = None,
+            allow_empty: bool = False,
     ):
         super(ImageFolder, self).__init__(root=root,
                                           transform=transform,
                                           target_transform=target_transform,
                                           loader=loader,
-                                          is_valid_file=is_valid_file)
+                                          is_valid_file=is_valid_file,
+                                          allow_empty=allow_empty,)

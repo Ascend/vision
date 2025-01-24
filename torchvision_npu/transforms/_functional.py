@@ -297,7 +297,7 @@ def resize(
     size: List[int],
     interpolation: InterpolationMode = InterpolationMode.BILINEAR,
     max_size: Optional[int] = None,
-    antialias: Optional[Union[str, bool]] = None,
+    antialias: Optional[Union[str, bool]] = True,
 ) -> Tensor:
     r"""Resize the input image to the given size.
     If the image is torch Tensor, it is expected
@@ -358,12 +358,6 @@ def resize(
     """
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resize)
-
-    if antialias is None:
-        if torchvision.__version__ >= '0.17.0':
-            antialias = True
-        else:
-            antialias = "warn"
 
     if torchvision.get_image_backend() != 'cv2':
         return F.resize_ori(img, size, interpolation, max_size, antialias)

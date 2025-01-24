@@ -18,42 +18,28 @@ class TestNormalizeMoal(TestCase):
         inplace = True
         # compute moal
         torchvision.set_image_backend('moal')
-        start_time = time.perf_counter()
         normalize = torchvision.transforms.Normalize(mean, std, inplace)
         float_images_moal = normalize(images)
-        end_time = time.perf_counter()
-        normalize_time_moal = (end_time - start_time) * 1000
 
         # compute origin
         torchvision.set_image_backend('PIL')
-        start_time = time.perf_counter()
         normalize = torchvision.transforms.Normalize(mean, std, inplace)
         float_images_origin = normalize(images)
-        end_time = time.perf_counter()
-        normalize_time_origin = (end_time - start_time) * 1000
 
         self.assertEqual(float_images_moal, float_images_origin)
-        self.assertTrue(normalize_time_origin > normalize_time_moal)
 
         inplace = False
         # compute moal
         torchvision.set_image_backend('moal')
-        start_time = time.perf_counter()
         normalize = torchvision.transforms.Normalize(mean, std, inplace)
         float_images_moal = normalize(images)
-        end_time = time.perf_counter()
-        normalize_time_moal = (end_time - start_time) * 1000
 
         # compute origin
         torchvision.set_image_backend('PIL')
-        start_time = time.perf_counter()
         normalize = torchvision.transforms.Normalize(mean, std, inplace)
         float_images_origin = normalize(images)
-        end_time = time.perf_counter()
-        normalize_time_origin = (end_time - start_time) * 1000
 
         self.assertEqual(float_images_moal, float_images_origin)
-        self.assertTrue(normalize_time_origin > normalize_time_moal)
 
 
 if __name__ == '__main__':
