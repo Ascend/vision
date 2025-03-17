@@ -357,6 +357,60 @@
    |-------------------|-----------------------|-------------|-------------|-------------|
    | to_tensor         | √（只接受uint 8类型的tensor） | 341.24      | 173.15      | 97.08%      |
    | normalize         | √（只接受float类型的tensor）  | 14.67       | 5.19        | 182.66%     |
+
+
+## 使用鲲鹏CPU进行视频处理
+基于`kunepng`向量化指令，使能多线程，实现算子在使用`鲲鹏CPU`进行视频处理时的性能优化，以达到加速的目的。
+
+1. 脚本适配
+   
+   设定`torchvision.set_video_backend()`和环境变量`TORCHVISION_OMP_NUM_THREADS`以激活`torchvision.io.read_video`加速分支。
+   ```python
+   ...
+   import os
+   import torchvision
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+   torchvision.set_image_backend('pyav')  # 设置视频处理后端为pyav(该值为默认值，若没有改动可缺省)
+   os.environ['TORCHVISION_OMP_NUM_THREADS'] = 8  # 通过环境变量设定使用多少线程加速该算子。未设定正整数或平台不支持，则走torchvision官方实现
+   video_frame, audio_frame, info = torchvision.io.read_video(video_path)  # 调用原生接口
+   ...
+   ```
+   
+   设定环境变量`TORCHVISION_OMP_NUM_THREADS`以激活`torchvision.transforms.v2.functional.uniform_temporal_subsample_video`加速分支。
+   ```python
+   ...
+   import os
+   import torchvision
+   from torchvision.transform import v2
+   import torchvision_npu # 导入torchvision_npu包
+   ...
+   os.environ['TORCHVISION_OMP_NUM_THREADS'] = 8  # 通过环境变量设定使用多少线程加速该算子。未设定正整数或平台不支持，则走torchvision官方实现
+   tensor_sampled = v2.functional.uniform_temporal_subsample_video(tensor_input, num_samples)  # 调用原生接口
+   ...
+   ```
+
+
+2. 执行单元测试
+
+   输出结果OK即为验证成功
+   ```bash
+   cd test/test_kunpeng/
+   python -m unittest discover
+   ```
+
+3. `鲲鹏CPU`优化算子支持列表以及性能加速情况
+
+   单算子实验在`arm`架构的`Atlas`训练系列产品上获得，单算子实验的结果在`OpenSora1.2`中使用`1080p`的视频数据集进行训练时，单算子时间求平均值获得。`CPU`优化的视频处理相关算子支持列表见表`6`。
+
+   **表 6**   鲲鹏CPU支持算子列表
+      
+   | kunpeng                          | 处理结果是否和原生算子完全一致 | 原始单算子时间(ms) | 优化单算子时间(ms) | 加速比     |
+   |----------------------------------|------------|-------------|-------------|---------|
+   | read_video                       | √（针对`yuv420p,yuvj420p`有向量化加速） | 1657.05     | 737.20      | 124.77% |
+   | uniform_temporal_subsample_video | √          | 12.59       | 5.03        | 150.29% |
+
+
 # 版本配套表
 
 |Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|
