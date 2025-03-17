@@ -29,6 +29,8 @@ from torchvision.transforms import _functional_tensor as F_t
 from torchvision.transforms import _functional_pil as F_pil
 from torchvision.transforms import InterpolationMode
 from torchvision.utils import _log_api_usage_once
+from torchvision.transforms import v2
+from torchvision_npu.io._video import get_kp_thread_num
 
 from . import _functional_npu as F_npu
 from . import _functional_cv2 as F_cv2
@@ -72,6 +74,8 @@ def patch_transform_methods():
     torchvision.transforms.functional.rgb_to_grayscale = rgb_to_grayscale
     torchvision.transforms.functional.get_image_size = _get_image_size
     torchvision.transforms.functional._get_image_num_channels = _get_image_num_channels
+    setattr(v2.functional, "uniform_temporal_subsample_video_ori", v2.functional.uniform_temporal_subsample_video)
+    v2.functional.uniform_temporal_subsample_video = uniform_temporal_subsample_video
 
 
 cv2_interpolation_mapping = {
@@ -80,6 +84,17 @@ cv2_interpolation_mapping = {
     InterpolationMode.BICUBIC: cv2.INTER_CUBIC,
     InterpolationMode.LANCZOS: cv2.INTER_LANCZOS4,
 }
+
+
+def uniform_temporal_subsample_video(video: torch.Tensor, num_samples: int) -> torch.Tensor:
+    num_threads = get_kp_thread_num()
+    if num_threads > 0 and num_samples > 0 and video.shape[-4] > 0:
+        t = video.shape[-4]
+        frame_indice = torch.linspace(0, t - 1, num_samples, device=video.device, dtype=torch.float64)
+        frame_indice = torch.clamp(frame_indice, 0, t - 1).long()
+        video_memcpy = torch.ops.torchvision.kp_temporal_random_crop(video, frame_indice, num_threads)
+        return video_memcpy
+    return v2.functional.uniform_temporal_subsample_video_ori(video=video, num_samples=num_samples)
 
 
 def _get_image_size(img: Tensor) -> List[int]:

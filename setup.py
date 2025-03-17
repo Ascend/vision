@@ -61,6 +61,18 @@ def generate_torchvision_npu_version():
 generate_torchvision_npu_version()
 
 
+def is_neon_supported():
+    cpu_info = "/proc/cpuinfo"
+    neon_support = False
+    if os.path.exists(cpu_info):
+        with open(cpu_info, "r") as f:
+            for line in f:
+                if "neon" in line.lower() or "asimd" in line.lower():
+                    neon_support = True
+                    break
+    return neon_support
+
+
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, 'torchvision_npu', 'csrc')
@@ -70,6 +82,8 @@ def get_extensions():
                 glob.glob(os.path.join(extensions_dir, 'ops', 'autocast', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, 'ops', '*.cpp')) + \
                 glob.glob(os.path.join(extensions_dir, '*.cpp'))
+    if is_neon_supported():
+        main_file += glob.glob(os.path.join(extensions_dir, 'ops', 'kp_cpu', '*.cpp'))
 
     sources = main_file
     extension = NpuExtension
@@ -90,7 +104,7 @@ def get_extensions():
     extra_link_args = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
-        "-Wl,-z,now",
+        "-Wl,-z,now"
     ]
 
     DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
@@ -116,6 +130,7 @@ def get_extensions():
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
     include_dirs = [extensions_dir, '*.hpp']
+    extra_objects = glob.glob(os.path.join(extensions_dir, 'ops', 'kp_cpu', '*.s')) if is_neon_supported() else []
 
     ext_modules = [
         extension(
@@ -124,7 +139,8 @@ def get_extensions():
             include_dirs=include_dirs,
             define_macros=define_macros,
             extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args
+            extra_link_args=extra_link_args,
+            extra_objects=extra_objects,
         )
     ]
 

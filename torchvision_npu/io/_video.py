@@ -20,21 +20,47 @@ from fractions import Fraction
 import os
 
 import cv2
-import av
 import numpy as np
 import torch
 import torch_npu
 from torchvision.utils import _log_api_usage_once
 import torchvision
+import av
 from torchvision import io as IO
 import torchvision_npu
 from torchvision_npu._utils import PathManager
 from torchvision_npu import io as IO_npu
 
 
+try:
+    FFmpegError = av.FFmpegError
+except AttributeError:
+    FFmpegError = av.AVError
+
+
 def patch_io_video():
     setattr(torchvision.io, "read_video_ori", torchvision.io.read_video)
     torchvision.io.read_video = read_video
+
+
+def is_neon_supported():
+    cpu_info = "/proc/cpuinfo"
+    neon_support = False
+    if os.path.exists(cpu_info):
+        with open(cpu_info, "r") as f:
+            for line in f:
+                if "neon" in line.lower() or "asimd" in line.lower():
+                    neon_support = True
+                    break
+    return neon_support
+
+
+def get_kp_thread_num():
+    num_thread = -1
+    env_var = os.environ.get("TORCHVISION_OMP_NUM_THREADS")
+    if env_var is not None and env_var.isdigit() and is_neon_supported():
+        num_thread = int(env_var)
+    return num_thread
 
 
 def read_video(
@@ -62,9 +88,11 @@ def read_video(
         aframes (Tensor[K, L]): the audio frames, where `K` is the number of channels and `L` is the number of points
         info (Dict): metadata for the video and audio. Can contain the fields video_fps (float) and audio_fps (int)
     """
-
+    num_thread = get_kp_thread_num()
     if torchvision.get_video_backend() == 'npu':
         return IO_npu._video._read_video(filename, start_pts, end_pts, pts_unit, output_format)
+    elif torchvision.get_video_backend() == 'pyav' and num_thread > 0:
+        return IO_npu._video.kp_read_video(filename, start_pts, end_pts, pts_unit, output_format, thread_count=num_thread)
     return IO.read_video_ori(filename, start_pts, end_pts, pts_unit, output_format)
 
 
@@ -242,7 +270,7 @@ def _read_from_stream_dvpp(
     frames, pts_per_frame = get_frame_by_cv(filename, container, stream)
     try:
         container.seek(seek_offset, any_frame=False, backward=True, stream=stream)
-    except av.AVError:
+    except FFmpegError:
         return []
     decode_params = DecodeParams(container, start_offset, end_offset, stream)
     frames = _decode_video_dvpp(decode_params, frames, pts_per_frame)
@@ -335,7 +363,7 @@ def _read_video(
                 )
                 info["audio_fps"] = container.streams.audio[0].rate
 
-    except av.AVError:
+    except FFmpegError:
         vframes = torch.empty(0, dtype=torch.uint8, device='npu')
 
     aframes_list = [frame.to_ndarray() for frame in audio_frames]
@@ -356,5 +384,127 @@ def _read_video(
     if output_format == "THWC" and vframes is not None and len(vframes) != 0:
         # [T,C,H,W] --> [T,H,W,C]
         vframes = vframes.permute(0, 2, 3, 1)
+
+    return vframes, aframes, info
+
+
+def _kp_yuv2rgb_is_vaild(video_pix_fmt, frame, video_colorspace):
+    return video_pix_fmt in ["yuv420p", "yuvj420p"] and \
+           not frame.width % 2 and not frame.height % 2 and \
+           video_colorspace in [1, 2]
+
+
+def kp_read_video(
+    filename: str,
+    start_pts: Union[float, Fraction] = 0,
+    end_pts: Optional[Union[float, Fraction]] = None,
+    pts_unit: str = "pts",
+    output_format: str = "THWC",
+    thread_count: int = 8
+) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, Any]]:
+    if not torch.jit.is_scripting() and not torch.jit.is_tracing():
+        _log_api_usage_once(read_video)
+
+    output_format = output_format.upper()
+    if output_format not in ("THWC", "TCHW"):
+        raise ValueError(f"output_format should be either 'THWC' or 'TCHW', got {output_format}.")
+
+    if not os.path.exists(filename):
+        raise RuntimeError(f"File not found: {filename}")
+
+    torchvision.io.video._check_av_available()
+
+    if end_pts is None:
+        end_pts = float("inf")
+
+    if end_pts < start_pts:
+        raise ValueError(
+            f"end_pts should be larger than start_pts, got start_pts={start_pts} and end_pts={end_pts}"
+        )
+
+    info = {}
+    video_frames = []
+    audio_frames = []
+    audio_timebase = torchvision.io._video_opt.default_timebase
+
+    try:
+        with av.open(filename, metadata_errors="ignore") as container:
+            if container.streams.audio:
+                audio_timebase = container.streams.audio[0].time_base
+            if container.streams.video:
+                container.streams.video[0].thread_type = "AUTO"
+                container.streams.video[0].thread_count = thread_count
+                video_frames = torchvision.io.video._read_from_stream(
+                    container,
+                    start_pts,
+                    end_pts,
+                    pts_unit,
+                    container.streams.video[0],
+                    {"video": 0},
+                )
+                video_fps = container.streams.video[0].average_rate
+                video_pix_fmt = container.streams.video[0].pix_fmt
+                video_color_range = container.streams.video[0].color_range
+                video_colorspace = container.streams.video[0].colorspace
+                # guard against potentially corrupted files
+                if video_fps is not None:
+                    info["video_fps"] = float(video_fps)
+
+            if container.streams.audio:
+                audio_frames = torchvision.io.video._read_from_stream(
+                    container,
+                    start_pts,
+                    end_pts,
+                    pts_unit,
+                    container.streams.audio[0],
+                    {"audio": 0},
+                )
+                info["audio_fps"] = container.streams.audio[0].rate
+
+    except FFmpegError as e:
+        warnings.warn(f"[Warning] Error while reading video {filename}: {e}")
+
+    vframes_list = []
+    src_stride = [0, 0, 0, 0]
+    for index, frame in enumerate(video_frames):
+        y_plane = torch.from_numpy(np.frombuffer(frame.planes[0], dtype=np.uint8))
+        u_plane = torch.from_numpy(np.frombuffer(frame.planes[1], dtype=np.uint8))
+        v_plane = torch.from_numpy(np.frombuffer(frame.planes[2], dtype=np.uint8))
+        for i in range(3):
+            src_stride[i] = frame.planes[i].line_size
+        if _kp_yuv2rgb_is_vaild(video_pix_fmt, frame, video_colorspace):
+            vframes_list.append(torch.ops.torchvision.yuv2rgb(thread_count,
+                                                              frame.width,
+                                                              frame.height,
+                                                              video_color_range,
+                                                              video_colorspace,
+                                                              y_plane,
+                                                              src_stride,
+                                                              u_plane,
+                                                              v_plane).numpy())
+        else:
+            vframes_list.append(video_frames[index].to_rgb().to_ndarray())
+
+    aframes_list = [frame.to_ndarray() for frame in audio_frames]
+
+    if vframes_list:
+        vframes = torch.as_tensor(np.stack(vframes_list))
+    else:
+        vframes = torch.empty((0, 1, 1, 3), dtype=torch.uint8)
+
+    if aframes_list:
+        aframes = np.concatenate(aframes_list, 1)
+        aframes = torch.as_tensor(aframes)
+        if pts_unit == "sec":
+            start_pts = int(math.floor(start_pts * (1 / audio_timebase)))
+            if end_pts != float("inf"):
+                end_pts = int(math.ceil(end_pts * (1 / audio_timebase)))
+        aframes = torchvision.io.video._align_audio_frames(aframes, audio_frames, start_pts, end_pts)
+    else:
+        aframes = torch.empty((1, 0), dtype=torch.float32)
+
+    if output_format == "TCHW":
+        # [T,H,W,C] --> [T,C,H,W]
+        vframes = vframes.permute(0, 3, 1, 2)
 
     return vframes, aframes, info
