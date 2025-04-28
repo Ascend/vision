@@ -18,9 +18,11 @@
 - 需完成CANN开发或运行环境的安装，具体操作请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000002.html)》。
 - 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch 。
 - 昇腾软件栈需要安装的版本请参考[版本配套表](#版本配套表)
-- Python支持版本为3.8.X，3.9.X，3.10.X，PyTorch支持版本为2.1.0, Torchvision支持版本为0.16.0。
+- Python支持版本参考PyTorch Adapter的[PyTorch与Python版本配套表](https://gitee.com/ascend/pytorch#pytorch%E4%B8%8Epython%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)
 
 **安装步骤**
+
+以torch 2.1.0版本，匹配安装torchvision 0.16.0为例。
 
 1. 编译安装Torchvision。
 
@@ -320,7 +322,8 @@
    | ps_roi_pool   | -    |
    | roi_align     | √    |
    | roi_pool      | √    |
-
+   
+   注：我们在v0.xx.x-7.0.0版本后，修复了nms算子在scores参数存在负数情况下的精度问题，如遇此场景，请按[版本配套表](#版本配套表)安装各个组件。
 
 ## 使用CPU进行图像处理
 使用c++多线程实现算子在使用CPU进行图像处理时的性能优化，以达到加速的目的
@@ -415,9 +418,11 @@
 
 |Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|
 | -----------------------|----------------------- | ------------- | ------------------------ | ------------- | -----| ---------|
-|  master |     v0.16.0-6.0.0        |     2.1.0     |   2.1.0.post10 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.0|
-|  master |     v0.16.0-6.0.rc3        |     2.1.0     |   2.1.0.post8 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.RC3|
-|  master |     v0.16.0-6.0.rc2        |     2.1.0     |   2.1.0.post6 | 0.16.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
+| master      |    v0.20.1-7.0.0        |     2.5.1     |   2.5.1        | 0.20.1  | Ascend HDK 25.0.RC1 | CANN 8.1.RC1|
+| v0.16.0-dev |    v0.16.0-7.0.0        |     2.1.0     |   2.1.0.post12 | 0.16.0  | Ascend HDK 25.0.RC1 | CANN 8.1.RC1|
+| v0.16.0-dev |    v0.16.0-6.0.0        |     2.1.0     |   2.1.0.post10 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.0 |
+| v0.16.0-dev |    v0.16.0-6.0.rc3        |     2.1.0     |   2.1.0.post8 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.RC3|
+| v0.16.0-dev |     v0.16.0-6.0.rc2        |     2.1.0     |   2.1.0.post6 | 0.16.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
 | v0.12.0-dev |     v0.12.0-6.0.rc2        |     1.11.0     |   1.11.0.post14 | 0.12.0  | Ascend HDK 24.1.RC2 | CANN 8.0.RC2|
 
 **Torchvision Adapter适配NPU的方案见[适配指导](docs/适配指导.md)。**
