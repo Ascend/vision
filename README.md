@@ -226,11 +226,11 @@
 
    | datasets/transforms/io      | functional       | 处理结果是否和社区接口一致 |    限制                 |
    |----------------------|------------------|--------------------|------------------------------  |
-   | default_loader  |    | 输出为NPU tensor，一般与to_tensor搭配使用                        | JPEG图像分辨率: 6x4~32768x32768   |
+   | default_loader       |    | 输出为NPU tensor，一般与to_tensor搭配使用                        | JPEG图像分辨率: 6x4~32768x32768   |
    | ToTensor             | to_tensor        | 支持四维tensor输入，一般与default_loader搭配使用                 | 分辨率: 6x4~4096x8192     |
    | ColorJitter          | adjust_hue       | 底层实现有差异，误差±1左右 | 分辨率: 6x4~4096x8192     |
    | encode_jpeg          |              |   | 分辨率: 32x32~8192x8192<br>输出宽高需要2对齐 |
-
+   | decode_jpeg          |              | 输出结果为NPU tensor  | device参数指定为npu设备|
 
 ## 使用DVPP视频处理后端
 
@@ -489,4 +489,4 @@
 
 
 ## 公开接口声明
-torchvision_npu 不对外暴露任何公开接口。为使torchvison在NPU上运行，我们通过Monkey Patch技术对torchvision原有函数的实现进行替换。用户使用原生torchvision库的接口，运行时执行torchvision_npu库中替换的函数实现。
+torchvision_npu 不对外暴露任何公开接口。为使torchvision在NPU上运行，我们通过Monkey Patch技术对torchvision原有函数的实现进行替换。用户使用原生torchvision库的接口，运行时执行torchvision_npu库中替换的函数实现。
