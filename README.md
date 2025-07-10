@@ -139,11 +139,19 @@
 
    - transforms方法实际调用pillow算子以及tensor算子，cv2算子调用接口与pillow算子调用接口保持一致。
 
-   - **cv2算子只支持numpy.ndarray作为入参，否则会直接抛出类型异常。**
+   - **cv2算子只支持numpy.ndarray作为入参**，resize接口支持输入Image.Image格式，在内部会做Image->array和array->Image的转换，**其他类型会直接抛出类型异常。**
 
      ```python
      TypeError(
-         "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+         "Using cv2 backend, the image data type should be numpy.ndarray or PIL.Image.Image. Unexpected type {}".format(type(img)))
+    
+     ```
+   - 注意如果输入是Image.Image格式，会造成数据转换的额外开销，性能有所下降。
+     ``` python
+     warnings.warn(
+            "Performance Notice: PIL Image (Image.Image) input detected. "
+            "Automatic conversion to NumPy array may cause processing overhead."
+        )
      ```
 
    - **cv2算子不支持pillow算子的BOX、HAMMING插值方式，会直接抛类型异常。**

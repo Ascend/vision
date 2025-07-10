@@ -101,10 +101,14 @@ def _get_image_size(img: Tensor) -> List[int]:
     """Returns image size as [w, h]
     """
     if torchvision.get_image_backend() == 'cv2':
-        if not isinstance(img, np.ndarray):
+        if isinstance(img, np.ndarray):
+            return F_cv2._get_image_size(img)
+        elif isinstance(img, Image.Image):
+            return F_pil.get_image_size(img)
+        else:
             raise TypeError(
-                "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
-        return F_cv2._get_image_size(img)
+                "Using cv2 backend, the image data type should be numpy.ndarray or PIL.Image. Unexpected type {}".format(type(img)))
+        
 
     if isinstance(img, torch.Tensor):
         return F_t.get_image_size(img)
@@ -374,7 +378,8 @@ def resize(
     if not torch.jit.is_scripting() and not torch.jit.is_tracing():
         _log_api_usage_once(resize)
 
-    if torchvision.get_image_backend() != 'cv2':
+    if (torchvision.get_image_backend() != 'cv2' 
+        or (isinstance(img, Image.Image) and interpolation in [InterpolationMode.NEAREST])):
         return F.resize_ori(img, size, interpolation, max_size, antialias)
 
     if isinstance(interpolation, int):
@@ -402,15 +407,25 @@ def resize(
 
     if [image_height, image_width] == output_size:
         return img
-
-    if not isinstance(img, np.ndarray):
+    if not isinstance(img, (np.ndarray, Image.Image)):
         raise TypeError(
-            "Using cv2 backend, the image data type should be numpy.ndarray. Unexpected type {}".format(type(img)))
+            "Using cv2 backend, the image data type should be numpy.ndarray or PIL.Image.Image. Unexpected type {}".format(type(img)))
+    need_trans = False
+    if isinstance(img, Image.Image):
+        need_trans = True
+        img = np.asarray(img)
+        warnings.warn(
+            "Performance Notice: PIL Image (Image.Image) input detected. "
+            "Automatic conversion to NumPy array may cause processing overhead."
+        )
     if interpolation not in cv2_interpolation_mapping:
         raise TypeError("Opencv does not support box and hamming interpolation")
     else:
         cv2_interpolation = cv2_interpolation_mapping[interpolation]
-    return F_cv2.resize(img, size=output_size, interpolation=cv2_interpolation)
+    res = F_cv2.resize(img, size=output_size, interpolation=cv2_interpolation)
+    if need_trans:
+        res = Image.fromarray(res)
+    return res
 
 
 def crop(img: Tensor, top: int, left: int, height: int, width: int) -> Tensor:
