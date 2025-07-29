@@ -14,43 +14,52 @@
 #include <torch_npu/csrc/core/npu/GetCANNInfo.h>
 #include "pytorch_npu_helper.hpp"
 
-double CannVersionToNum(const std::string &versionStr)
+constexpr size_t kVersionIndex1 = 1;
+constexpr size_t kVersionIndex2 = 2;
+constexpr size_t kVersionIndex3 = 3;
+constexpr size_t kVersionIndex4 = 4;
+
+int64_t CannVersionToNum(const std::string &versionStr)
 {
     std::smatch results;
-    int major = -1;
-    int minor = -1;
-    int release = -1;
-    int RCVersion = -51;
-    int TVersion = -1;
-    int alphaVersion = 0;
+    int64_t major = -1;
+    int64_t minor = -1;
+    int64_t release = -1;
+    int64_t RCVersion = -51;
+    int64_t TVersion = -1;
+    int64_t alphaVersion = 0;
     if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        RCVersion = stoi(results[3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        RCVersion = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        release = stoi(results[3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        release = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).T([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        TVersion = stoi(results[3]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        TVersion = stoll(results[kVersionIndex3]);
     } else if (std::regex_match(versionStr, results, std::regex("([0-9]+).([0-9]+).RC([0-9]+).alpha([0-9]+)"))) {
-        major = stoi(results[1]);
-        minor = stoi(results[2]);
-        RCVersion = stoi(results[3]);
-        alphaVersion = stoi(results[4]);
+        major = stoll(results[kVersionIndex1]);
+        minor = stoll(results[kVersionIndex2]);
+        RCVersion = stoll(results[kVersionIndex3]);
+        alphaVersion = stoll(results[kVersionIndex4]);
     }
 
-    double num = ((major + 1) * 100000000) + ((minor + 1) * 1000000) + ((release + 1) * 10000) + ((RCVersion + 1) * 100 + 5000) + ((TVersion + 1) * 100) - (100 - alphaVersion);
+    int64_t num = ((major + 1) * 100000000) +
+                 ((minor + 1) * 1000000) +
+                 ((release + 1) * 10000) +
+                 ((RCVersion + 1) * 100 + 5000) +
+                 ((TVersion + 1) * 100) - (100 - alphaVersion);
     return num;
 }
 
 bool IsGteCANNVersion(const std::string &version)
 {
     std::string currentVersion = GetCANNVersion();
-    double current_num = CannVersionToNum(currentVersion);
-    double boundary_num = CannVersionToNum(version);
+    int64_t current_num = CannVersionToNum(currentVersion);
+    int64_t boundary_num = CannVersionToNum(version);
     if (current_num >= boundary_num) {
         return true;
     } else {

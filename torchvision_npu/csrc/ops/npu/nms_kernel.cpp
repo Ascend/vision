@@ -31,7 +31,8 @@ at::Tensor nms_kernel_impl(
 {
     at::Tensor iou_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(iou_threshold);
     at::Tensor scores_threshold_y;
-    if (IsGteCANNVersion("8.1.RC1")) {
+    static const bool is_fill_lowest = IsGteCANNVersion("8.1.RC1");
+    if (is_fill_lowest) {
         scores_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(std::numeric_limits<float>::lowest());
     } else {
         scores_threshold_y = at::empty({}, boxes.options().dtype(at::kFloat)).fill_(0);

@@ -104,7 +104,8 @@ def get_extensions():
     extra_link_args = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
-        "-Wl,-z,now"
+        "-Wl,-z,now",
+        "-Wl,-Bsymbolic"
     ]
 
     DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
