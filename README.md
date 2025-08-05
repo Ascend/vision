@@ -426,7 +426,10 @@
 
 |Torchvision Adapter分支 |Torchvision Adapter Tag  | PyTorch版本   | PyTorch Extension版本    |Torchvision版本 | 驱动版本 | CANN版本|
 | -----------------------|----------------------- | ------------- | ------------------------ | ------------- | -----| ---------|
-| master      |    v0.20.1-7.0.0        |     2.5.1     |   2.5.1        | 0.20.1  | Ascend HDK 25.0.RC1 | CANN 8.1.RC1|
+| master      |    v0.21.0-7.1.0        |     2.6.0     |   2.6.0        | 0.21.0  |  Ascend HDK 25.2.0 | CANN 8.2.RC1 |
+| v0.20.1-dev      |    v0.20.1-7.1.0        |     2.5.1    |   2.5.1.post1         | 0.20.1  |  Ascend HDK 25.2.0 | CANN 8.2.RC1 |
+| v0.16.0-dev |    v0.16.0-7.1.0        |     2.1.0     |   2.1.0.post13 | 0.16.0  | Ascend HDK 25.2.0 | CANN 8.2.RC1 |
+| v0.20.1-dev      |    v0.20.1-7.0.0        |     2.5.1     |   2.5.1        | 0.20.1  | Ascend HDK 25.0.RC1 | CANN 8.1.RC1|
 | v0.16.0-dev |    v0.16.0-7.0.0        |     2.1.0     |   2.1.0.post12 | 0.16.0  | Ascend HDK 25.0.RC1 | CANN 8.1.RC1|
 | v0.16.0-dev |    v0.16.0-6.0.0        |     2.1.0     |   2.1.0.post10 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.0 |
 | v0.16.0-dev |    v0.16.0-6.0.rc3        |     2.1.0     |   2.1.0.post8 | 0.16.0  | Ascend HDK 24.1.RC3 | CANN 8.0.RC3|
