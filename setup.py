@@ -28,7 +28,7 @@ from torch_npu.utils.cpp_extension import NpuExtension
 from torch.utils.cpp_extension import BuildExtension, CppExtension
 
 
-VERSION = '0.21.0'
+VERSION = '0.22.1'
 UNKNOWN = "Unknown"
 
 
