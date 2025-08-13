@@ -15,7 +15,8 @@ at::Tensor warp_affine_aclnn_kernel(
     int64_t padding_mode,
     c10::optional<c10::ArrayRef<double>> fill)
 {
-    TORCH_CHECK(matrix.has_value() && (matrix.value().size() == 6), "Param[matrix] is required and size=9.");
+    const int matrix_size = 6;
+    TORCH_CHECK(matrix.has_value() && (matrix.value().size() == matrix_size), "Param[matrix] is required and size=6.");
 
     std::vector<float> m_vec = array_to_vector_cast<float, double>(matrix.value());
     at::ArrayRef<float> matrix_cast(m_vec);

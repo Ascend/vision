@@ -93,8 +93,8 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
     def __init__(self, loader):
         try:
             torch_npu.npu.synchronize()
-        except:
-            pass
+        except Exception as e:
+            print(e)
         self._prefetch_factor = loader.prefetch_factor
         self._dataset = loader.dataset
         self._shared_seed = None

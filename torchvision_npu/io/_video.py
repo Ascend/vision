@@ -121,6 +121,8 @@ class DecodeParams:
 def get_frame_by_cv(filename: str, container: "av.container.Container", stream: "av.stream.Stream") -> Tuple[Dict[
     int, VideoFrameDvpp], int]:
     cap = cv2.VideoCapture(filename)
+    if not cap.isOpened():
+        raise RuntimeError(f"filename is not opened in cv2.VideoCapture.")
     cap.set(cv2.CAP_PROP_FORMAT, -1)
     frames: Dict[int, VideoFrameDvpp] = {}
     pts_list = []
