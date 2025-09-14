@@ -1,3 +1,4 @@
+# 通知: 本项目已经正式迁移至 [Gitcode](https://gitcode.com/Ascend) 平台
 # Torchvision Adapter
 
 -   [简介]()
@@ -501,3 +502,4 @@
 
 ## 公开接口声明
 torchvision_npu 不对外暴露任何公开接口。为使torchvision在NPU上运行，我们通过Monkey Patch技术对torchvision原有函数的实现进行替换。用户使用原生torchvision库的接口，运行时执行torchvision_npu库中替换的函数实现。
+ _强调_ 
