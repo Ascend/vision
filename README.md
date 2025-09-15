@@ -16,9 +16,9 @@
 
 **前提条件**
 - 需完成CANN开发或运行环境的安装，具体操作请参考《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000002.html)》。
-- 需完成PyTorch Adapter插件安装，具体请参考 https://gitee.com/ascend/pytorch 。
+- 需完成PyTorch Adapter插件安装，具体请参考 https://gitcode.com/ascend/pytorch 。
 - 昇腾软件栈需要安装的版本请参考[版本配套表](#版本配套表)
-- Python支持版本参考PyTorch Adapter的[PyTorch与Python版本配套表](https://gitee.com/ascend/pytorch#pytorch%E4%B8%8Epython%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)
+- Python支持版本参考PyTorch Adapter的[PyTorch与Python版本配套表](https://gitcode.com/ascend/pytorch#pytorch%E4%B8%8Epython%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)
 
 **安装步骤**
 
@@ -52,7 +52,7 @@
 
    ```shell
     # 下载Torchvision Adapter代码，进入插件根目录
-    git clone https://gitee.com/ascend/vision.git vision_npu
+    git clone https://gitcode.com/ascend/vision.git vision_npu
     cd vision_npu
     git checkout v0.16.0-6.0.0
     # 安装依赖库
@@ -494,9 +494,9 @@
 ## 公网地址声明
 **表 6** torchvision_npu的配置文件和脚本中存在的公网地址
 
-| 类型 | 开源代码地址| 文件名  | 公网IP地址/公网URL地址/域名/邮箱地址 | 用途说明 |
-| ----- | --------- | ----------- | ------- | ------- |
-| 开发引入 | 不涉及 | vision/setup.cfg | https://gitee.com/ascend/vision | 用于打包whl的url入参 |
+| 类型 | 开源代码地址| 文件名  | 公网IP地址/公网URL地址/域名/邮箱地址            | 用途说明 |
+| ----- | --------- | ----------- |-----------------------------------| ------- |
+| 开发引入 | 不涉及 | vision/setup.cfg | https://gitcode.com/ascend/vision | 用于打包whl的url入参 |
 
 
 ## 公开接口声明
