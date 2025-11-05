@@ -9,6 +9,7 @@ namespace ops {
 namespace {
 
 const int SIZE = 8;
+const size_t CROP_SIZE = 2;
 
 at::Tensor& crop_and_resize_aclop_kernel_impl(
     const at::Tensor& self,
@@ -45,7 +46,7 @@ at::Tensor crop_and_resize_aclop_kernel(
 {
     TORCH_CHECK(boxes.has_value(),
         "Op[crop_and_resize_aclop] argument[boxes] is mandatory");
-    TORCH_CHECK(crop_size.size() == 2,
+    TORCH_CHECK(crop_size.size() == CROP_SIZE,
         "Op[crop_and_resize_aclop] argument[crop_size] should have 2 elements: (height, width).");
 
     c10::SmallVector<int64_t, SIZE> output_size = {
@@ -67,6 +68,8 @@ at::Tensor crop_and_resize_aclnn_kernel(
     at::IntArrayRef size,
     int64_t interpolation_mode)
 {
+    TORCH_CHECK(size.size() == CROP_SIZE,
+        "Op[crop_and_resize_aclnn_kernel] argument[size] should have 2 elements: (height, width).");
     c10::SmallVector<int64_t, SIZE> output_size = {1, self.size(1), size[0], size[1]};
     at::Tensor result = at::empty(output_size, self.options());
     EXEC_NPU_CMD(acldvppCropAndResize, self, top, left, height, width, size, interpolation_mode, result);

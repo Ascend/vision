@@ -163,6 +163,8 @@ def normalize(tensor: Tensor, mean: List[float], std: List[float], inplace: bool
         is_float_tensor = tensor.dtype in [torch.bfloat16, torch.float16, torch.float32, torch.float64]
         if not (is_float_tensor and tensor.device.type == 'cpu'):
             raise TypeError(f"Normalize moal only support cpu float tensor.")
+        if tensor.ndim == 3:
+            tensor = tensor.unsqueeze(0)
         return torch.ops.torchvision.normalize_moal(tensor, mean=mean, std=std, inplace=inplace)
 
     return F.normalize_ori(tensor, mean=mean, std=std, inplace=inplace)
