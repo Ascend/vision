@@ -29,6 +29,7 @@ ImageShapeInfo get_jpeg_shape_from_memory(const uint8_t* jpegData, size_t dataLe
     auto times = 0;
     size_t byte_size = 8;
     size_t precision_size = 5;
+    size_t add_size = 4;
     while (index < dataLength - 1) {
         times += 1;
         if (jpegData[index] == 0xFF) {
@@ -36,7 +37,7 @@ ImageShapeInfo get_jpeg_shape_from_memory(const uint8_t* jpegData, size_t dataLe
             if (marker_sof.find(marker) != marker_sof.end()) {
                 // Skip precision byte
                 index += precision_size;
-
+                TORCH_CHECK(index + add_size < dataLength, "JPEG segment exceeds data length: invalid segment");
                 info.height = (jpegData[index] << byte_size) | jpegData[index + 1];
                 index += 2;
                 info.width = (jpegData[index] << byte_size) | jpegData[index + 1];

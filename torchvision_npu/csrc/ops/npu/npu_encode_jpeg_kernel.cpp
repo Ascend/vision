@@ -45,8 +45,10 @@ at::Tensor encode_jpeg_aclnn_kernel(const at::Tensor& self, int64_t quality)
 
     std::vector<int64_t> out_size(view_dims, view_dims + view_dims_num);
     c10::SmallVector<int64_t, SIZE> view_size = {out_size[0]};
-
-    return result.resize_(view_size);
+    result.resize_(view_size);
+    delete[] view_dims;
+    view_dims = nullptr;
+    return result;
 }
 
 } // namespace

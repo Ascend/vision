@@ -9,6 +9,7 @@ namespace ops {
 namespace {
 
 const int SIZE = 8;
+const size_t SIGMA_SIZE = 2;
 
 at::Tensor& gaussian_blur_aclop_kernel_impl(
     const at::Tensor& self,
@@ -39,8 +40,8 @@ at::Tensor gaussian_blur_aclop_kernel(
     c10::optional<c10::ArrayRef<double>> sigma,
     std::string padding_mode)
 {
-    TORCH_CHECK(sigma.has_value(),
-        "Op[gaussian_blur_aclop] argument[sigma] is mandatory");
+    TORCH_CHECK(sigma.has_value() && (sigma.value().size() == SIGMA_SIZE),
+                "Param[sigma] is required and size=2.");
 
     at::Tensor result = at::empty(self.sizes(), self.options());
 
@@ -59,7 +60,7 @@ at::Tensor gaussian_blur_aclnn_kernel(
     c10::optional<c10::ArrayRef<double>> sigma,
     int64_t padding_mode)
 {
-    TORCH_CHECK(sigma.has_value() && (sigma.value().size() == 2),
+    TORCH_CHECK(sigma.has_value() && (sigma.value().size() == SIGMA_SIZE),
                 "Param[sigma] is required and size=2.");
 
     std::vector<float> s_vec = array_to_vector_cast<float, double>(sigma.value());
