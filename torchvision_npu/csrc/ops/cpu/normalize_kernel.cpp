@@ -9,8 +9,8 @@ namespace ops {
 at::Tensor normalize_kernel(at::Tensor tensor, const std::vector<double>& mean, const std::vector<double>& std, bool inplace = false)
 {
     TORCH_CHECK(tensor.is_floating_point(), "Input tensor should be a float tensor.")
-
-    TORCH_CHECK(tensor.ndimension() >= 3, "Expected tensor to be a tensor image of size (..., C, H, W).")
+    size_t image_size = 3;
+    TORCH_CHECK(tensor.ndimension() > image_size, "Expected tensor to be a tensor image of size (..., C, H, W).")
 
     at::Tensor ret;
     if (inplace) {
@@ -27,7 +27,8 @@ at::Tensor normalize_kernel(at::Tensor tensor, const std::vector<double>& mean, 
  
     std::vector<float> mean_tensor(mean.begin(), mean.end());
     std::vector<float> inv_std_tensor(std.size());
- 
+    TORCH_CHECK(mean.size() >= channels && std.size() >= channels,
+                "mean size and std size should be greater than to channels")
     for (size_t i = 0; i < std.size(); i++) {
         TORCH_CHECK(std[i] != 0, "std evaluated to zero, leading to division by zero.")
         inv_std_tensor[i] = 1.0 / std[i];

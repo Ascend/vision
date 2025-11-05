@@ -50,6 +50,8 @@ at::Tensor pad_aclop_kernel(
         "Op[pad_aclop] argument[pad] should have 4 elements: (pad_left, pad_right, pad_top, pad_bottom).");
     int64_t h = self.size(2) + pad[2] + pad[3];
     int64_t w = self.size(3) + pad[0] + pad[1];
+    TORCH_CHECK(h > 0 && w > 0,
+        "Op[pad_aclop] outputsize h, w should be greater than 0");
     c10::SmallVector<int64_t, SIZE> output_size = {1, self.size(1), h, w};
     at::Tensor result = at::empty(output_size, self.options());
 
@@ -81,6 +83,8 @@ at::Tensor pad_aclnn_kernel(
 
     int64_t h = self.size(2) + padding[1] + padding[3];
     int64_t w = self.size(3) + padding[0] + padding[2];
+    TORCH_CHECK(h > 0 && w > 0,
+        "Op[pad_aclnn] outputsize h, w should be greater than 0");
     c10::SmallVector<int64_t, SIZE> output_size = {1, self.size(1), h, w};
     at::Tensor result = at::empty(output_size, self.options());
 
