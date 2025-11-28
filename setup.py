@@ -125,6 +125,8 @@ def get_extensions():
         extra_compile_args += [
             '-I' + os.path.join(torch_npu_path, 'include', 'third_party', 'acl', 'inc')
         ]
+        third_party_include = os.path.join(this_dir, 'third_party')
+        extra_compile_args += [f'-I{third_party_include}']
     except Exception as e:
         raise ImportError('can not find any torch_npu') from e
 

@@ -20,7 +20,7 @@
 
 #include <cstdint>
 #include <mutex>
-#include <acl/dvpp/hi_dvpp.h>
+#include <dvpp/hi_dvpp.h>
 
 namespace vision {
 namespace ops {
